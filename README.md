@@ -8,18 +8,18 @@ This repository is AMX Mod X plugin for add new customizable weapons to Counter-
 
 * If you download project files with manual method you need extract zip file.
 
-* Go Counter-Strike 1.6 directory the go 'cstrike/addons/amxmodx/scripting'
+* Go Counter-Strike 1.6 directory the go "cstrike/addons/amxmodx/scripting"
 
-* Drag one by one all scripts in 'CS16-NST-Weapons-Remake' repository it to 'amxxpc.exe'
+* Drag one by one all scripts in "CS16-NST-Weapons-Remake" repository it to "amxxpc.exe"
 
-* Check all '.amxx' files.
+* Check all ".amxx" files.
 
 ## How to add NST Weapons Remake Plugin in game
 * Before doing this steps, build NST Weapons Remake Script files.
 
-* Firstly, move all '.amxx' files to 'cstrike/addons/amxmodx/plugins' in Counter-Strike 1.6 directory.
+* Firstly, move all ".amxx" files to "cstrike/addons/amxmodx/plugins" in Counter-Strike 1.6 directory.
 
-* Finally, open 'plugins.ini' file in 'cstrike/addons/amxmodx/configs' then add these to the bottom line.
+* Finally, open "plugins.ini" file in "cstrike/addons/amxmodx/configs" then add these to the bottom line.
 ```
 nst_weapons.amxx
 nst_weapons_knifes.amxx
