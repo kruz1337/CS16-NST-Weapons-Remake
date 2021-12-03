@@ -1,0 +1,27 @@
+[en]
+MENU_TITLE = NST Weapons [By Kruziikrel#6822]
+MENU_ITEM1 = Pistols
+MENU_ITEM2 = Shotguns
+MENU_ITEM3 = Sub-Machine Guns
+MENU_ITEM4 = Rifles
+MENU_ITEM5 = Sniper-Rifles
+MENU_ITEM6 = Machine Gun
+MENU_ITEM7 = Knifes
+MENU_ITEM8 = Grenades
+
+MENU_NEXT = Next
+MENU_BACK = Back
+MENU_EXIT = Exit
+
+ACCESS_DENIED = You dont have a permission!
+
+USER_IS_DEAD = You must be alive to use this command!
+
+FILE_NOT_LOADED = Config file is not found! (parameters="$")
+BROKEN_CONFIG = Failed to load config file! (parameters="$")
+INSUFFICIENT_MONEY = You don't have enough money for buy this weapon!
+NOT_LIVE = You can only buy while you're alive.
+CANT_BUY_WEAPON = You cannot buy Weapons in this location.
+ACCESS_DENIED_BUY = You dont have a permission for buy this weapon!
+ALREADY_HAVE = You already have %s
+BUY_TIME_END = Buy %i seconds have passed. ^nYou can't buy anything now!
