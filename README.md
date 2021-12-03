@@ -38,6 +38,14 @@ nst_weapons_secondary.amxx
 * nst_zoom_spk <0|1> : If you set 0, there will be no sound when NST weapon scope is opened.
 
 ## How to make NST Weapons Remake config?
-* ?
+### Syntax Rules:
+
+* Do not use Float in digit values.
+* Do not set digit values more than 6 character.
+* Use the value order in the config file. If you change values place you will get error.
+* Do not set Digit values in Sound Files, Model Files and Sprite Files.
+* Do not add any values other than those in the config file.
+* Set "Tracer" value like "255 255 255". Do not delete spaces. Do not insert different operators in spaces.
+* Set "wpn_id" value to '1, 10, 11, 16, 17 or 26' in Pistol config file. 
+* Set "wpn_id" value to '3, 5,7, 8, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28 or 30' in Rifles config file.
   
-* ?
