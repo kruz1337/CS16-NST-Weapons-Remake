@@ -49,4 +49,6 @@ nst_weapons_secondary.amxx
 * Set "wpn_id" value to ```"1, 10, 11, 16, 17 or 26"``` in Pistol config file. 
 * Set "wpn_id" value to ```"3, 5,7, 8, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28 or 30"```
   in Rifles config file.
-  
+* Always do not add sound more than 2 when setting "fire_sounds".
+* When you setting Models, Sounds or Sprite value do not add "models/", "sounds/", or "sprites/" in value begin.
+
