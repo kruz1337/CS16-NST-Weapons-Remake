@@ -1,0 +1,2 @@
+# CS16-NST-Weapons-Remake
+This repository is AMX Mod X plugin for add new customizable weapons to Counter-Strike 1.6 game.
