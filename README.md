@@ -36,3 +36,8 @@ nst_weapons_secondary.amxx
 * nst_buy_time <second> : You set the NST Weapons buy time.
 * nst_give_bot <0|1> : If you set 1, all bots can buy NST Weapons.
 * nst_zoom_spk <0|1> : If you set 0, there will be no sound when NST weapon scope is opened.
+
+## How to make NST Weapons Remake config?
+* ?
+  
+* ?
