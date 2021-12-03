@@ -52,4 +52,4 @@ nst_weapons_secondary.amxx
 * Always do not add sound more than 2 when setting "fire_sounds".
 * When you setting Models, Sounds or Sprite value do not add "models/", "sounds/", or "sprites/" in value begin.
 
-* If you follow these rules, you will not get any error.
+[x] If you follow these rules, you will not get any error.
