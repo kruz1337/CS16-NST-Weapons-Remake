@@ -1395,13 +1395,13 @@ public Buy_Weapon(id, wpnid)
 
 			client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", szTemp)
 		}
-		else if (get_cvar_num("nst_free") ? wp_cost <= get_user_money(id) : 1)
+        else if (get_cvar_num("nst_free") ? 1 : wp_cost <= get_user_money(id))
 		{
 			CURRENT_WEAPON[id] = wpnid
 			HAS_WEAPON[id] = wpnid
 			Current_Weapon(id)
 
-			if (!get_cvar_num("nst_free"))
+			if (get_cvar_num("nst_free") == 0)
 			{
 				set_user_money(id, user_money + -wp_cost)
 			}

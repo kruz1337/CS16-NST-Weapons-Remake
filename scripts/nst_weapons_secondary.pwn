@@ -1940,7 +1940,7 @@ public Buy_Weapon(id, wpnid)
 
             client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", szTemp)
 		}
-        else if (get_cvar_num("nst_free") ? wp_cost <= get_user_money(id) : 1)
+        else if (get_cvar_num("nst_free") ? 1 : wp_cost <= get_user_money(id))
         {
             drop_all_secondary(id)
         
@@ -1949,7 +1949,7 @@ public Buy_Weapon(id, wpnid)
             Give_Weapon(id, clip_max, ammo_max)
 			ShowHud_Ammo(id, ammo_max)
 
-            if (!get_cvar_num("nst_free"))
+			if (get_cvar_num("nst_free") == 0)
             {
                 set_user_money(id, user_money + -wp_cost)
             }
