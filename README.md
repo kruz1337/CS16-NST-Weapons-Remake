@@ -12,6 +12,11 @@ This repository is AMX Mod X plugin for add new customizable weapons to Counter-
 
 * Move "string_stocks.inc" file to "cstrike/addons/amxmodx/scripting/include" directory and move "cstrike_amxx.dll" file to "cstrike/addons/amxmodx/modules" in project files.
 
+* Add this line "modules.ini" file in "cstrike/addons/amxmodx/configs" directory.
+```
+cstrike
+```
+
 * Drag one by one all scripts in "CS16-NST-Weapons-Remake" repository it to "amxxpc.exe"
 
 * Check all ".amxx" files.
