@@ -60,3 +60,7 @@ nst_weapons_secondary.amxx
 * When you setting Models, Sounds or Sprite value do not add "models/", "sounds/", or "sprites/" in value begin.
 
 - [x] If you follow these rules, you will not get any error.
+  
+### Some Infos:
+- If you set "reload" value to "1" player will be able to shoot until the ammo runs out.
+
