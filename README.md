@@ -28,8 +28,7 @@ cstrike
 
 * Finally, open "plugins.ini" file in "cstrike/addons/amxmodx/configs" then add these to the bottom line.
 ```
-nst_weapons.amxx![145606543-be9f25c0-c95e-433e-a07c-6caa387c611f](https://user-images.githubusercontent.com/61029407/145635182-cfb6f83a-17db-48be-bf11-74fbeff53b43.png)
-
+nst_weapons.amxx
 nst_weapons_knifes.amxx
 nst_weapons_primary.amxx
 nst_weapons_secondary.amxx
