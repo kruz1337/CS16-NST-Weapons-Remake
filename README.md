@@ -79,7 +79,7 @@ nst_weapons_secondary.amxx
 "1" = Spawns custom sprites where bullet is thrown
 "0" = Classic tracer
   ```
-#### Example Images:
+### Example Images:
   <figcaption>Zoom Type 2:</figcaption>
   <img align="left" src="https://user-images.githubusercontent.com/61029407/145606543-be9f25c0-c95e-433e-a07c-6caa387c611f.png">
   <figcaption>Zoom Type 1:</figcaption>
