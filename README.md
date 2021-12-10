@@ -79,3 +79,5 @@ nst_weapons_secondary.amxx
 "1" = Spawns custom sprites where bullet is thrown
 "0" = Classic tracer
   ```
+#### Images:
+  
