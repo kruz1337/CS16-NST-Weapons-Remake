@@ -80,11 +80,3 @@ nst_weapons_secondary.amxx
 "0" = Classic tracer
   ```
   #### Example Images:
-  Zoom Type 2:
-  <img align="left" src="https://user-images.githubusercontent.com/61029407/145606543-be9f25c0-c95e-433e-a07c-6caa387c611f.png">
-  Zoom Type 1:
-  <img align="left" src="https://user-images.githubusercontent.com/61029407/145606547-1ee78ada-9518-4112-9083-64ea448dea49.png">
-  Tracer Type 2:
-  <img align="left" src="https://user-images.githubusercontent.com/61029407/145606552-865bfc80-e52c-4607-ac37-edb956a25638.png">
-  Tracer Type 1
-  <img align="left" src="https://user-images.githubusercontent.com/61029407/145606554-98dbaad5-06c0-47c0-8831-576f1d38fdc7.png">
