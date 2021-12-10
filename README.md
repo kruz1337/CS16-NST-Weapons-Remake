@@ -84,7 +84,7 @@ nst_weapons_secondary.amxx
   #### Example Images:
   | Zoom Type 1 | Zoom Type 2 | Tracer Type 1 | Tracer Type 2 |
   |-------------|-------------|---------------|---------------|
-  |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/zoomtype1.png)|![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype2.png)             |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype1.png)                |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype2.png)              |
+  |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/zoomtype1.png)|![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/zoomtype2.png)             |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype1.png)                |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype2.png)              |
   
   | Reload 0 |
   |-------------|
