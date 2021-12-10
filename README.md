@@ -66,25 +66,25 @@ nst_weapons_secondary.amxx
 - If you increase "speed" value, player speed will increase while holding that NST weapon.
 - If you increase "knockback" value, enemy will you shoot is knocked back.
 - If you set "zoom type" value to "3" when you click right click open's custom sight model.
- #### \ secondary_type:
+ #### - secondary_type:
   ```
 "4" = When you hold right click pistol auto shoots
 "3" = Custom model scope
 "2" = Awp big scope
 "1" = Zoom
   ```
- #### \ tracer_type:
+ #### - tracer_type:
   ```
 "2" = New tracer
 "1" = Spawns custom sprites where bullet is thrown
 "0" = Classic tracer
   ```
-### Example Images:
-  - <figcaption>Zoom Type 2:</figcaption>
+  #### Example Images:
+  Zoom Type 2:
   <img align="left" src="https://user-images.githubusercontent.com/61029407/145606543-be9f25c0-c95e-433e-a07c-6caa387c611f.png">
-  <figcaption>Zoom Type 1:</figcaption>
+  Zoom Type 1:
   <img align="left" src="https://user-images.githubusercontent.com/61029407/145606547-1ee78ada-9518-4112-9083-64ea448dea49.png">
-  <figcaption>Tracer Type 2:</figcaption>
+  Tracer Type 2:
   <img align="left" src="https://user-images.githubusercontent.com/61029407/145606552-865bfc80-e52c-4607-ac37-edb956a25638.png">
-  <figcaption>Tracer Type 1:</figcaption>
+  Tracer Type 1
   <img align="left" src="https://user-images.githubusercontent.com/61029407/145606554-98dbaad5-06c0-47c0-8831-576f1d38fdc7.png">
