@@ -3,6 +3,8 @@ This repository is AMX Mod X plugin for add new customizable weapons to Counter-
 
 ![](https://img.shields.io/badge/language-pawn-a68762?style=flat) ![](https://img.shields.io/badge/game-cs16-yellow?style=flat) ![](https://img.shields.io/badge/license-GNU-green?style=flat)
 
+![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/thumbnail.png)
+
 ## How to build NST Weapons Remake Script files?
 * First of all you should download project files on project page or clone this repository from GitBash or GitHub Desktop on your PC. [NST-Weapons-Remake.zip](https://github.com/Kruziikrel1/CS16-NST-Weapons-Remake)
 
