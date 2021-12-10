@@ -3,7 +3,7 @@ This repository is AMX Mod X plugin for add new customizable weapons to Counter-
 
 ![](https://img.shields.io/badge/language-pawn-a68762?style=flat) ![](https://img.shields.io/badge/game-cs16-yellow?style=flat) ![](https://img.shields.io/badge/license-GNU-green?style=flat)
 
-![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/thumbnail.png)
+![Image of RequestX International Developer Group on Discord](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/thumbnail.png)
 
 ## How to build NST Weapons Remake Script files?
 * First of all you should download project files on project page or clone this repository from GitBash or GitHub Desktop on your PC. [NST-Weapons-Remake.zip](https://github.com/Kruziikrel1/CS16-NST-Weapons-Remake)
@@ -84,7 +84,7 @@ nst_weapons_secondary.amxx
   #### Example Images:
   | Zoom Type 1 | Zoom Type 2 | Tracer Type 1 | Tracer Type 2 |
   |-------------|-------------|---------------|---------------|
-  |![](https://user-images.githubusercontent.com/61029407/145606543-be9f25c0-c95e-433e-a07c-6caa387c611f.png)|![](https://user-images.githubusercontent.com/61029407/145606547-1ee78ada-9518-4112-9083-64ea448dea49.png)             |![](https://user-images.githubusercontent.com/61029407/145606552-865bfc80-e52c-4607-ac37-edb956a25638.png)                |![](https://user-images.githubusercontent.com/61029407/145606554-98dbaad5-06c0-47c0-8831-576f1d38fdc7.png)              |
+  |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/zoomtype1.png)|![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype2.png)             |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype1.png)                |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype2.png)              |
   
   | Reload 0 |
   |-------------|
