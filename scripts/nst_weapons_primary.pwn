@@ -2150,7 +2150,13 @@ public Secondary_Attack(entity)
         {
             if (wpn_id == CSW_SG550 || wpn_id == CSW_AWP || wpn_id == CSW_G3SG1 || wpn_id == CSW_SG552)
             {
-                return PLUGIN_CONTINUE
+                if (get_pdata_float(Id, 83, 5) > 0.0)
+                {
+                    return HAM_SUPERCEDE
+                }
+
+                set_pdata_float(Id, 83, get_pdata_float(Id, 83, 5) + 10, 5)
+                return FMRES_SUPERCEDE
             }
             else
             {
@@ -2164,6 +2170,13 @@ public Secondary_Attack(entity)
 
                 return FMRES_SUPERCEDE
             }
+        }
+        else
+        {
+            set_pdata_float(Id, 83, get_pdata_float(Id, 83, 5) + 0.2, 5)	
+            set_pdata_int(entity, 64, 0, 4)
+
+            return PLUGIN_CONTINUE
         }
     }
     else
@@ -2838,6 +2851,15 @@ public fw_CmdStart(client, uc_handle, seed)
             }
 		}
         if (cvar_zoom_type[CURRENT_WEAPON] == 2 && (wpn_id == CSW_SG550 || wpn_id == CSW_AWP || wpn_id == CSW_G3SG1 || wpn_id == CSW_SG552))
+        {
+            if (clip == 0 || (NewButton & IN_RELOAD))
+            {
+                set_pdata_int(client, m_iFOV, 90, 5);
+                cs_set_user_zoom(client, CS_SET_NO_ZOOM, 1)
+                ResetFov(client)
+            }
+        }
+        if (cvar_zoom_type[CURRENT_WEAPON] == 1 && (wpn_id == CSW_SG550 || wpn_id == CSW_AWP || wpn_id == CSW_G3SG1 || wpn_id == CSW_SG552))
         {
             if (clip == 0 || (NewButton & IN_RELOAD))
             {
