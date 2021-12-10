@@ -64,4 +64,5 @@ nst_weapons_secondary.amxx
 ### Some Infos:
 - If you set "reload" value to "1" player will be able to shoot until the ammo runs out.
 - If you increase "speed" value, player speed will increase while holding that NST weapon.
-- If you increase "knockback" value, 
+- If you increase "knockback" value, enemy will you shoot is knocked back.
+-
