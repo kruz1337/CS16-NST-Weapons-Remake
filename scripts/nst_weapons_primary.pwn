@@ -12,11 +12,9 @@
 #include <fakemeta>
 #include <fakemeta_stocks>
 
-#pragma tabsize 0
-
 #define PLUGIN "NST Primary Weapons"
-#define VERSION "1.0"
-#define AUTHOR "Ҡruziikrel#6822"
+#define VERSION "1.1"
+#define AUTHOR "github.com/Kruziikrel1"
 
 /* Other Variables */
 #if defined UL_COMPAT
@@ -40,21 +38,15 @@ enum (+= 100)
 const XTRA_OFS_PLAYER			= 5
 const m_pPlayer			        = 41
 const m_iId				        = 43
-const m_fKnown				    = 44
 const m_flNextPrimaryAttack	    = 46
 const m_flNextSecondaryAttack	= 47
 const m_flTimeWeaponIdle		= 48
 const m_iPrimaryAmmoType		= 49
 const m_iClip				    = 51
 const m_fInReload			    = 54
-const m_fInSpecialReload	    = 55
-const m_flAccuracy              = 62
-const m_fSilent			        = 74
-const m_flDecreaseShotsFired    = 76
 const m_flNextAttack		    = 83
 const m_iFOV                    = 363
 const m_rgAmmo_player_Slot0	    = 376
-const m_pActiveItem             = 373
 
 /* Arrays */
 new Array: Rifle_InfoText;
@@ -112,12 +104,10 @@ const s_fire_sounds_next = 46
 /* Integers */
 const MAX_WPN = 5000
 new commencing = 0
-new typecontrol = 0
 new brokenConfig = 0
-new backup_client
 new HAS_WEAPON[33]
 new CURRENT_WEAPON[33]
-new inTwoZoom[33], inThreeZoom[33], Disable_Type_Zoom[33]
+new inZoom[33], inZoom2[33], disableZoom[33]
 
 /* Weapon Variables */
 new class_weapons[MAX_WPN][32]
@@ -131,9 +121,8 @@ new Float:cvar_fastrun[MAX_WPN]
 new Float:cvar_sightrecoil[MAX_WPN]
 
 new Float:Pushangle[33][3]
-new Float:round_time
+new Float:roundTime
 
-new cvar_uclip[MAX_WPN]
 new cvar_zoom_type[MAX_WPN]
 new cvar_clip[MAX_WPN]
 new cvar_ammo[MAX_WPN]
@@ -148,50 +137,12 @@ new SAVE_CLIP[33]
 new SAVED_CLIP[33]
 new IN_EMIT_ATTACK
 
-/* Weapons Consts */
 new const rifles[] = { 3, 5, 7, 8, 12, 13, 14, 15, 18, 19 , 20 , 21 , 22 , 23 , 24 , 27 , 28 , 30 }
 new const weapons_ammo_id[] = { -1, 9, -1, 2, 12, 5, 14, 6, 4, 13, 10, 7, 6, 4, 4, 4, 6, 10, 1, 10, 3, 5, 4, 10, 2, 11, 8, 4, 2, -1, 7}
 new const weapons_max_bp_ammo[] = { -1, 52, -1, 90, -1, 32, -1, 100, 90, -1, 120, 100, 100, 90, 90, 90, 100, 120, 30, 120, 200, 32, 90, 120, 90, -1, 35, 90, 90, -1, 100 }
 new const buy_AmmoCount[] = { -1 , 13, -1, 30, -1, 8, -1, 12, 30, -1, 30, 50, 12, 30, 30, 30, 12, 30, 10, 30, 30, 8, 30, 30, 30, -1, 30, 30, 30, -1, 50 }
 new const buy_AmmoCost[] = { -1 , 50, -1, 80, -1, 65, -1, 25, 60, -1, 20, 50, 25, 60, 60, 60, 25, 20, 125, 20, 60, 65, 60, 20, 80, -1, 80, 60, 80, -1, 50 }
-
-/* Old Weapon Variables */
 new const weapons_old_w[][] = { "w_scout", "w_xm1014", "w_aug", "w_mac10", "w_ump45", "w_sg550", "w_galil", "w_famas", "w_awp", "w_mp5navy", "w_m249", "w_m3", "w_m4a1", "w_tmp", "w_g3sg1", "w_sg552", "w_ak47", "w_p90" }
-new const weapons_old_sounds[][] = 
-{ 
-    "weapons/ak47-1.wav", 
-    "weapons/ak47-2.wav", 
-    "weapons/aug-1.wav", 
-    "weapons/awp1.wav", 
-    "weapons/deagle-1.wav", 
-    "weapons/deagle-2.wav", 
-    "weapons/elite_fire.wav", 
-    "weapons/famas-1.wav", 
-    "weapons/famas-2.wav", 
-    "weapons/fiveseven-1.wav", 
-    "weapons/g3sg1-1.wav", 
-    "weapons/galil-1.wav", 
-    "weapons/galil-2.wav", 
-    "weapons/glock18-1.wav", 
-    "weapons/glock18-2.wav", 
-    "weapons/m4a1-1.wav", 
-    "weapons/m249-1.wav", 
-    "weapons/m249-2.wav", 
-    "weapons/mac10-1.wav", 
-    "weapons/mp5-1.wav", 
-    "weapons/mp5-2.wav", 
-    "weapons/p90-1.wav", 
-    "weapons/p228-1.wav", 
-    "weapons/sg550-1.wav",
-    "weapons/sg552-1.wav",
-    "weapons/sg552-2.wav",
-    "weapons/tmp-1.wav",
-    "weapons/tmp-2.wav",
-    "weapons/ump45-1.wav",
-    "weapons/usp1.wav",
-    "weapons/usp2.wav",
-    "weapons/xm1014-1.wav"
-}
 
 stock const weapons_max_clip[] = {-1, 13, -1, 10, 1, 7, 1, 30, 30, 1, 30, 20, 25, 30, 35, 25, 12, 20, 10, 30, 100, 8, 30, 30, 20, 2, 7, 30, 30, -1, 50}
 stock const Float:weapons_clip_delay[CSW_P90+1] = {0.00, 2.70, 0.00, 2.00, 0.00, 0.55, 0.00, 3.15, 3.30, 0.00, 4.50, 2.70, 3.50, 3.35, 2.45, 3.30, 2.70, 2.20, 2.50, 2.63, 4.70, 0.55, 3.05, 2.12, 3.50, 0.00, 2.20, 3.00, 2.45, 0.00, 3.40}
@@ -407,7 +358,6 @@ public C_check_rifle_config()
 public C_read_rifle_config()
 {
 	new buffer[128]
-	new right[128], left[128]
     new left_comment[128], right_comment[128], left_s_comment[128], right_s_comment[128]
 
 	new fp_rifles = fopen("addons/amxmodx/configs/nst_weapons/nst_rifles.ini", "r")
@@ -445,7 +395,7 @@ public C_read_rifle_config()
 stock C_parse_rifle_config(const strKey, const Property[])
 {
 	new parserLine[128]
-	new rightValue[128], leftValue[32], right_C[128], left_C[32]
+	new rightValue[128], leftValue[32]
 
 	new PropertyNumber
 
@@ -1047,7 +997,7 @@ stock C_rifle_syntaxRules()
         {
             if (equal(leftValue, "tracer"))
             {
-                new r_color[64], g_color[64], b_color[64], width[64], right[64], left[64]
+                new r_color[64], g_color[64], b_color[64], width[64], right[64]
                 strtok(rightValue, r_color, 64, right, 64, ',')
                 strtok(right, g_color, 64, right, 64, ',')
                 strtok(right, b_color, 64, width, 64, ',')
@@ -1075,7 +1025,7 @@ stock C_rifle_syntaxRules()
 
             if (equal(leftValue, "tracer"))
             {
-                new r_color[64], g_color[64], b_color[64], width[64], right[64], left[64]
+                new r_color[64], g_color[64], b_color[64], width[64], right[64]
                 strtok(rightValue, r_color, 64, right, 64, ',')
                 strtok(right, g_color, 64, right, 64, ',')
                 strtok(right, b_color, 64, width, 64, ',')
@@ -1636,7 +1586,6 @@ public NST_Shotguns(client)
 	new menu[512] , menuxx
 	new text[256], len = 0
     new administrator, wpn_id
-    backup_client = client
 	formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_TITLE")
 	menuxx = menu_create(menu, "Get_NSTWeapon")
 
@@ -1699,7 +1648,6 @@ public NST_Submachine(client)
 	new menu[512] , menuxx
 	new text[256], len = 0
     new administrator, wpn_id
-    backup_client = client
 	formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_TITLE")
 	menuxx = menu_create(menu, "Get_NSTWeapon")
 
@@ -1762,7 +1710,6 @@ public NST_Rifles(client)
 	new menu[512] , menuxx
 	new text[256], len = 0
     new administrator, wpn_id
-    backup_client = client
 	formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_TITLE")
 	menuxx = menu_create(menu, "Get_NSTWeapon")
 
@@ -1825,7 +1772,6 @@ public NST_Snipers(client)
 	new menu[512] , menuxx
 	new text[256], len = 0
     new administrator, wpn_id
-    backup_client = client
 	formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_TITLE")
 	menuxx = menu_create(menu, "Get_NSTWeapon")
 
@@ -1888,7 +1834,6 @@ public NST_Machine(client)
 	new menu[512] , menuxx
 	new text[256], len = 0
     new administrator, wpn_id
-    backup_client = client
 	formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_TITLE")
 	menuxx = menu_create(menu, "Get_NSTWeapon")
 
@@ -1973,7 +1918,7 @@ public Buy_Weapon(id, wpnid)
     }
     else
 	{
-		new plrClip, plrAmmo, user
+		new plrClip, plrAmmo
 		get_user_weapon(id, plrClip , plrAmmo)
 
 		new user_money = get_user_money(id)
@@ -1990,7 +1935,7 @@ public Buy_Weapon(id, wpnid)
 		{
             client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "NOT_LIVE")
         }
-        else if (get_gametime() - round_time > get_cvar_num("nst_buy_time"))
+        else if (get_gametime() - roundTime > get_cvar_num("nst_buy_time"))
         {
             engclient_print(id, engprint_center, "%L", LANG_PLAYER, "BUY_TIME_END", get_cvar_num("nst_buy_time"));
         }
@@ -2077,8 +2022,6 @@ public Primary_Attack_Post(entity)
     }
     
 	new client = pev(entity, pev_owner)
-	new id = get_pdata_cbase(entity, 41, 4);
-
 	new CURRENT_WEAPON = HAS_WEAPON[client]
 	new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
 	new wpn_id = get_user_weapon(client, _, _)
@@ -2108,7 +2051,7 @@ public Primary_Attack_Post(entity)
 		pev(client,pev_punchangle,push)
 		xs_vec_sub(push, Pushangle[client], push)
 
-        if (inThreeZoom[client])
+        if (inZoom2[client])
         {
             xs_vec_mul_scalar(push, cvar_sightrecoil[CURRENT_WEAPON], push)
         }
@@ -2275,11 +2218,11 @@ public Item_PostFrame(entity)
 				}
 			}
 
-            Disable_Type_Zoom[client] = 1
+            disableZoom[client] = 1
 		}
         else
         {
-            Disable_Type_Zoom[client] = 0
+            disableZoom[client] = 0
         }
 	}
 }
@@ -2306,7 +2249,7 @@ public Current_Weapon(client)
         formatex(p_model,charsmax(p_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "p_model"))
         formatex(sight_model,charsmax(sight_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "sight_model"))
 
-        if (!inThreeZoom[client])
+        if (!inZoom2[client])
         {
 		    set_pev(client, pev_viewmodel2, v_model)
         }
@@ -2394,10 +2337,10 @@ public OnPlayerTouchWeaponBox(ent, id)
 
 public ClientCommand_buyammo1(client)
 {
+    new iAmmo, iWeapon, ammo_max, ammo_def
+
     if (brokenConfig != 0)
     {
-		new iClip, iAmmo, iWeapon, clip_max, ammo_max, clip_def, ammo_def
-
 		for (new i = 0; i < sizeof(rifles); i++)
 		{
 			if (user_has_weapon(client, rifles[i]))
@@ -2431,12 +2374,9 @@ public ClientCommand_buyammo1(client)
     {
         new buyzone = cs_get_user_buyzone(client)
         new CURRENT_WEAPON = HAS_WEAPON[client]
-        new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
 
         if ((get_cvar_num("nst_use_buyzone") ? buyzone : 1) && user_has_primary(client))
         {
-            new iClip, iAmmo, iWeapon, clip_max, ammo_max, clip_def, ammo_def
-
             for (new i = 0; i < sizeof(rifles); i++)
             {
                 if (user_has_weapon(client, rifles[i]))
@@ -2447,9 +2387,7 @@ public ClientCommand_buyammo1(client)
 
             if (iWeapon != 0)
             {
-                clip_def = weapons_max_clip[iWeapon]
                 ammo_def = weapons_max_bp_ammo[iWeapon]
-                clip_max = cvar_clip[CURRENT_WEAPON]
                 ammo_max = cvar_ammo[CURRENT_WEAPON]
                 iAmmo = cs_get_user_bpammo(client, iWeapon);
                 
@@ -2542,11 +2480,11 @@ public fw_TraceAttack(entity, attacker, Float:flDamage, Float:fDir[3], ptr, iDam
         new const GUNSHOT_DECALS[] = { 41, 42, 43, 44, 45 }
 
 		new clip,ammo
-		new wpn_id = get_user_weapon(attacker, clip, ammo)
+		wpn_id = get_user_weapon(attacker, clip, ammo)
 
 		if (wpn_id == CHANGE_WEAPON && HAS_WEAPON[attacker]) 
 		{           
-            new r_color[64], g_color[64], b_color[64], width[64], right[64], left[64]
+            new r_color[64], g_color[64], b_color[64], width[64], right[64]
             strtok(cvar_tracer[CURRENT_WEAPON], r_color, 64, right, 64, ',')
             strtok(right, g_color, 64, right, 64, ',')
             strtok(right, b_color, 64, width, 64, ',')
@@ -2668,7 +2606,6 @@ public fw_WorldModel(entity, model[])
 
 	new Classname[32], w_model[252]
     new CURRENT_WEAPON = HAS_WEAPON[iOwner]
-	new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
 
 	pev(entity, pev_classname, Classname, sizeof(Classname))
 
@@ -2736,14 +2673,14 @@ public fw_CmdStart(client, uc_handle, seed)
 			formatex(v_model, charsmax(v_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "v_model"))
 			set_pev(client, pev_viewmodel2, v_model)
 
-			inTwoZoom[client] = 0
-			inThreeZoom[client] = 0
+			inZoom[client] = 0
+			inZoom2[client] = 0
 		}
 		else
 		{
 			if ((NewButton & IN_ATTACK2) && !(OldButton & IN_ATTACK2))
 			{
-				if (cvar_zoom_type[CURRENT_WEAPON] == 1 && !Disable_Type_Zoom[client])
+				if (cvar_zoom_type[CURRENT_WEAPON] == 1 && !disableZoom[client])
 				{
 					set_weapon_timeidle(client, 0.3)
 					set_pdata_float(client, m_flNextAttack, 0.3, 5)
@@ -2766,15 +2703,15 @@ public fw_CmdStart(client, uc_handle, seed)
 						}
 					}
 				}
-				else if (cvar_zoom_type[CURRENT_WEAPON] == 2 && !Disable_Type_Zoom[client])
+				else if (cvar_zoom_type[CURRENT_WEAPON] == 2 && !disableZoom[client])
 				{
 					set_weapon_timeidle(client, 0.3)
 					set_pdata_float(client, m_flNextAttack, 0.3, 5)
 					set_player_nextattack(client, 0.66)
 
-					if (!inTwoZoom[client])
+					if (!inZoom[client])
 					{
-						inTwoZoom[client] = 1
+						inZoom[client] = 1
 						set_pdata_int(client, m_iFOV, 35, 5);
 						if (get_cvar_num("nst_zoom_spk"))
 						{
@@ -2783,7 +2720,7 @@ public fw_CmdStart(client, uc_handle, seed)
 					}
 					else
 					{
-						inTwoZoom[client] = 0
+						inZoom[client] = 0
 						set_pdata_int(client, m_iFOV, 90, 5);
 						if (get_cvar_num("nst_zoom_spk"))
 						{
@@ -2791,14 +2728,14 @@ public fw_CmdStart(client, uc_handle, seed)
 						}
 					}
 				}
-				else if (cvar_zoom_type[CURRENT_WEAPON] == 3 && !Disable_Type_Zoom[client])
+				else if (cvar_zoom_type[CURRENT_WEAPON] == 3 && !disableZoom[client])
 				{
 					set_weapon_timeidle(client, 0.3)
 					set_pdata_float(client, m_flNextAttack, 0.3, 5)
 					set_player_nextattack(client, 0.66)
-					if (!inThreeZoom[client])
+					if (!inZoom2[client])
 					{
-						inThreeZoom[client] = 1
+						inZoom2[client] = 1
 						new sight_model[999]
 						formatex(sight_model, charsmax(sight_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "sight_model"))
 						set_pev(client, pev_viewmodel2, sight_model)
@@ -2811,7 +2748,7 @@ public fw_CmdStart(client, uc_handle, seed)
 					}
 					else
 					{
-						inThreeZoom[client] = 0
+						inZoom2[client] = 0
 						new v_model[999]
 						formatex(v_model, charsmax(v_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "v_model"))
 						set_pev(client, pev_viewmodel2, v_model)
@@ -2846,8 +2783,8 @@ public fw_CmdStart(client, uc_handle, seed)
 			    formatex(v_model, charsmax(v_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "v_model"))
 			    set_pev(client, pev_viewmodel2, v_model)
 
-                inTwoZoom[client] = 0
-			    inThreeZoom[client] = 0
+                inZoom[client] = 0
+			    inZoom2[client] = 0
             }
 		}
         if (cvar_zoom_type[CURRENT_WEAPON] == 2 && (wpn_id == CSW_SG550 || wpn_id == CSW_AWP || wpn_id == CSW_G3SG1 || wpn_id == CSW_SG552))
@@ -2871,8 +2808,8 @@ public fw_CmdStart(client, uc_handle, seed)
     }
     else
     {
-        inTwoZoom[client] = 0
-        inThreeZoom[client] = 0
+        inZoom[client] = 0
+        inZoom2[client] = 0
     }
 }
 
@@ -2985,7 +2922,7 @@ public event_start_freezetime()
 
 public event_new_round()
 {
-    round_time = get_gametime()
+    roundTime = get_gametime()
 }
 
 public client_putinserver(id)
