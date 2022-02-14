@@ -9,11 +9,9 @@
 #include <fakemeta_util>
 #include <regex>
 
-#pragma tabsize 0
-
 #define PLUGIN "NST Weapons"
-#define VERSION "1.0"
-#define AUTHOR "Ҡruziikrel#6822"
+#define VERSION "1.1"
+#define AUTHOR "github.com/Kruziikrel1"
 
 new auto_buy_enabled = 0
 
