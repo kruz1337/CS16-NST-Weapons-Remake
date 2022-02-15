@@ -10,7 +10,7 @@
 #include <regex>
 
 #define PLUGIN "NST Weapons"
-#define VERSION "1.1"
+#define VERSION "1.2"
 #define AUTHOR "github.com/Kruziikrel1"
 
 new auto_buy_enabled = 0
@@ -77,23 +77,23 @@ public nstmenu(client) {
 
 public nstmenu_next(client, menu, item) {
     switch (item) {
-        case 0: {
+        case 0 :  {
             nstwpn_primary(client)
         }
-        case 1: {
+        case 1 :  {
             client_cmd(client, "nst_menu_type1")
         }
-        case 2: {
+        case 2 :  {
             client_cmd(client, "nst_menu_type7")
         }
-        case 3: {
+        case 3 :  {
 
         }
-        case 4: {
+        case 4 :  {
             client_cmd(client, "nst_rifle_rebuy")
             client_cmd(client, "nst_knife_rebuy")
         }
-        case 5: {
+        case 5 :  {
             auto_buy_enabled = !auto_buy_enabled
 
             if (auto_buy_enabled == 0) {
@@ -143,7 +143,6 @@ public nstwpn_primary(client) {
 
     menu_setprop(menuxx, MPROP_EXIT, "\r%L", LANG_PLAYER, "MENU_EXIT")
 
-    //Show Menu
     if (is_user_alive(client)) {
         menu_display(client, menuxx, 0)
     } else {
@@ -153,22 +152,22 @@ public nstwpn_primary(client) {
 
 public nstmenu_primary_next(client, menu, item) {
     switch (item) {
-        case 0: {
+        case 0 :  {
             client_cmd(client, "nst_menu_type2")
         }
-        case 1: {
+        case 1 :  {
             client_cmd(client, "nst_menu_type3")
         }
-        case 2: {
+        case 2 :  {
             client_cmd(client, "nst_menu_type5")
         }
-        case 3: {
+        case 3 :  {
             client_cmd(client, "nst_menu_type4")
         }
-        case 4: {
+        case 4 :  {
             client_cmd(client, "nst_menu_type6")
         }
-        case 5: {
+        case 5 :  {
             client_cmd(client, "nst_menu_type7")
         }
     }
@@ -181,14 +180,12 @@ public nstmenu_primary_next(client, menu, item) {
     return PLUGIN_HANDLED
 }
 
-/* Menu Properties */
 public autobuy_previous_task(client) {
     client_cmd(client, "nst_rifle_rebuy")
     client_cmd(client, "nst_knife_rebuy")
-    remove_task(1903)
+    remove_task(1881)
 }
 
-/* Config Checker */
 public BrokenConfig() {
     new messageTex[100], messageTex2[100]
     new const files[][] = { "addons/amxmodx/configs/nst_weapons/nst_rifles.ini", "addons/amxmodx/configs/nst_weapons/nst_pistols.ini", "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
@@ -213,7 +210,6 @@ public BrokenConfig() {
     }
 }
 
-/* Game Events */
 public event_new_round() {
     new client = read_data(2)
 

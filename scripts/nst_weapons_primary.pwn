@@ -13,7 +13,7 @@
 #include <fakemeta_stocks>
 
 #define PLUGIN "NST Primary Weapons"
-#define VERSION "1.1"
+#define VERSION "1.2"
 #define AUTHOR "github.com/Kruziikrel1"
 
 /* Other Variables */
@@ -29,11 +29,6 @@
 #define Set_BitVar(%1,%2) %1 |= (1 << (%2 & 31))
 #define UnSet_BitVar(%1,%2) %1 &= ~(1 << (%2 & 31))
 
-enum( += 100) {
-    TASK_GIVEWPNBOT
-}
-
-/* Offsets */
 const XTRA_OFS_PLAYER = 5
 const m_pPlayer = 41
 const m_iId = 43
@@ -47,69 +42,21 @@ const m_flNextAttack = 83
 const m_iFOV = 363
 const m_rgAmmo_player_Slot0 = 376
 
-/* Arrays */
+enum( += 100) {
+    TASK_GIVEWPNBOT
+}
+
 new Array: Rifle_InfoText;
 new Array: Rifle_Names;
 new Array: Rifles_Number;
 
-/* Config Variables */
-const NEXT_SECTION = 24
-const END_SECTION = 22
-const s_administrator = 1
-const s_administrator_next = 25
-const s_cost = 2
-const s_cost_next = 26
-const s_wpn_id = 3
-const s_wpn_id_next = 27
-const s_clip = 4
-const s_clip_next = 28
-const s_ammo = 5
-const s_ammo_next = 29
-const s_damage = 6
-const s_damage_next = 30
-const s_recoil = 7
-const s_recoil_next = 31
-const s_deploy = 8
-const s_deploy_next = 32
-const s_reload = 9
-const s_reload_next = 33
-const s_speed = 10
-const s_speed_next = 34
-const s_knockback = 11
-const s_knockback_next = 35
-const s_fastrun = 12
-const s_fastrun_next = 36
-const s_zoom_type = 13
-const s_zoom_type_next = 37
-const s_tracer = 14
-const s_tracer_next = 38
-const s_tracer_type = 15
-const s_tracer_type_next = 39
-const s_tracer_sprite = 16
-const s_tracer_sprite_next = 40
-const s_sight_recoil = 17
-const s_sight_recoil_next = 41
-const s_sight_model = 18
-const s_sight_model_next = 42
-const s_v_model = 19
-const s_v_model_next = 43
-const s_p_model = 20
-const s_p_model_next = 44
-const s_w_model = 21
-const s_w_model_next = 45
-const s_fire_sounds = 22
-const s_fire_sounds_next = 46
-
-/* Integers */
-const MAX_WPN = 5000
-new commencing = 0
 new brokenConfig = 0
-new HAS_WEAPON[33]
-new CURRENT_WEAPON[33]
-new inZoom[33], inZoom2[33], disableZoom[33]
+new commencing = 0
 
-/* Weapon Variables */
-new class_weapons[MAX_WPN][32]
+const MAX_WPN = 5000
+const NEXT_SECTION = 24
+new HAS_WEAPON[33], CURRENT_WEAPON[33]
+new inZoom[33], inZoom2[33], disableZoom[33]
 
 new Float:cvar_deploy[MAX_WPN]
 new Float:cvar_dmgmultiplier[MAX_WPN]
@@ -119,9 +66,10 @@ new Float:cvar_knockback[MAX_WPN]
 new Float:cvar_fastrun[MAX_WPN]
 new Float:cvar_sightrecoil[MAX_WPN]
 
-new Float:Pushangle[33][3]
+new Float:pushangle[33][3]
 new Float:roundTime
 
+new class_weapons[MAX_WPN][32]
 new cvar_zoom_type[MAX_WPN]
 new cvar_clip[MAX_WPN]
 new cvar_ammo[MAX_WPN]
@@ -132,16 +80,15 @@ new cvar_tracer[MAX_WPN][64]
 new cvar_tracer_type[MAX_WPN]
 new cvar_tracer_sprite[MAX_WPN]
 
-new SAVE_CLIP[33]
-new SAVED_CLIP[33]
+new SAVE_CLIP[33], SAVED_CLIP[33]
 new IN_EMIT_ATTACK
 
 new const rifles[] = { 3, 5, 7, 8, 12, 13, 14, 15, 18, 19, 20, 21, 22, 23, 24, 27, 28, 30 }
 new const weapons_ammo_id[] = {-1, 9, -1, 2, 12, 5, 14, 6, 4, 13, 10, 7, 6, 4, 4, 4, 6, 10, 1, 10, 3, 5, 4, 10, 2, 11, 8, 4, 2, -1, 7 }
 new const weapons_max_bp_ammo[] = {-1, 52, -1, 90, -1, 32, -1, 100, 90, -1, 120, 100, 100, 90, 90, 90, 100, 120, 30, 120, 200, 32, 90, 120, 90, -1, 35, 90, 90, -1, 100 }
+new const weapons_old_w[][] = { "w_scout", "w_xm1014", "w_aug", "w_mac10", "w_ump45", "w_sg550", "w_galil", "w_famas", "w_awp", "w_mp5navy", "w_m249", "w_m3", "w_m4a1", "w_tmp", "w_g3sg1", "w_sg552", "w_ak47", "w_p90" }
 new const buy_AmmoCount[] = {-1, 13, -1, 30, -1, 8, -1, 12, 30, -1, 30, 50, 12, 30, 30, 30, 12, 30, 10, 30, 30, 8, 30, 30, 30, -1, 30, 30, 30, -1, 50 }
 new const buy_AmmoCost[] = {-1, 50, -1, 80, -1, 65, -1, 25, 60, -1, 20, 50, 25, 60, 60, 60, 25, 20, 125, 20, 60, 65, 60, 20, 80, -1, 80, 60, 80, -1, 50 }
-new const weapons_old_w[][] = { "w_scout", "w_xm1014", "w_aug", "w_mac10", "w_ump45", "w_sg550", "w_galil", "w_famas", "w_awp", "w_mp5navy", "w_m249", "w_m3", "w_m4a1", "w_tmp", "w_g3sg1", "w_sg552", "w_ak47", "w_p90" }
 
 stock const weapons_max_clip[] = {-1, 13, -1, 10, 1, 7, 1, 30, 30, 1, 30, 20, 25, 30, 35, 25, 12, 20, 10, 30, 100, 8, 30, 30, 20, 2, 7, 30, 30, -1, 50 }
 stock const Float:weapons_clip_delay[CSW_P90 + 1] = { 0.00, 2.70, 0.00, 2.00, 0.00, 0.55, 0.00, 3.15, 3.30, 0.00, 4.50, 2.70, 3.50, 3.35, 2.45, 3.30, 2.70, 2.20, 2.50, 2.63, 4.70, 0.55, 3.05, 2.12, 3.50, 0.00, 2.20, 3.00, 2.45, 0.00, 3.40 }
@@ -207,9 +154,9 @@ public plugin_startup() {
     Rifle_Names = ArrayCreate(64)
     Rifle_InfoText = ArrayCreate(128)
 
-    C_read_rifle_config()
-    C_read_rifle_sections()
-    C_check_rifle_config()
+    readConfig()
+    readConfigSections()
+    checkConfig()
 }
 
 public plugin_precache() {
@@ -218,10 +165,10 @@ public plugin_precache() {
     if (brokenConfig == 0) {
         for (new i = 1; i < ArraySize(Rifle_Names); i++) {
             new v_model[252], p_model[252], w_model[252], sight_model[252]
-            formatex(v_model, charsmax(v_model), "models/%s", C_parse_rifle_config(i, "v_model"))
-            formatex(p_model, charsmax(p_model), "models/%s", C_parse_rifle_config(i, "p_model"))
-            formatex(w_model, charsmax(w_model), "models/%s", C_parse_rifle_config(i, "w_model"))
-            formatex(sight_model, charsmax(sight_model), "models/%s", C_parse_rifle_config(i, "sight_model"))
+            formatex(v_model, charsmax(v_model), "models/%s", parseConfig(i, "v_model"))
+            formatex(p_model, charsmax(p_model), "models/%s", parseConfig(i, "p_model"))
+            formatex(w_model, charsmax(w_model), "models/%s", parseConfig(i, "w_model"))
+            formatex(sight_model, charsmax(sight_model), "models/%s", parseConfig(i, "sight_model"))
 
             precache_model(v_model)
             precache_model(p_model)
@@ -233,7 +180,7 @@ public plugin_precache() {
             new total_sound[252]
             new fs_left[252], fs_right[252]
 
-            formatex(total_sound, charsmax(total_sound), "%s", C_parse_rifle_config(i, "fire_sounds"))
+            formatex(total_sound, charsmax(total_sound), "%s", parseConfig(i, "fire_sounds"))
             strtok(total_sound, fs_left, 252, fs_right, 252, '*')
             trim(fs_left)
             trim(fs_right)
@@ -263,46 +210,46 @@ public plugin_precache() {
 
                 format(class_weapons[wpnid], 31, "nst_%s", model)
 
-                cvar_clip[wpnid] = str_to_num(C_parse_rifle_config(wpnid, "clip"))
-                cvar_ammo[wpnid] = str_to_num(C_parse_rifle_config(wpnid, "ammo"))
-                cvar_cost[wpnid] = str_to_num(C_parse_rifle_config(wpnid, "cost"))
-                cvar_administrator[wpnid] = str_to_num(C_parse_rifle_config(wpnid, "administrator"))
-                cvar_zoom_type[wpnid] = str_to_num(C_parse_rifle_config(wpnid, "zoom_type"))
-                cvar_reload[wpnid] = str_to_num(C_parse_rifle_config(wpnid, "reload"))
-                cvar_tracer_type[wpnid] = str_to_num(C_parse_rifle_config(wpnid, "tracer_type"))
-                cvar_tracer_sprite[wpnid] = precache_model(C_parse_rifle_config(wpnid, "tracer_sprite"))
+                cvar_clip[wpnid] = str_to_num(parseConfig(wpnid, "clip"))
+                cvar_ammo[wpnid] = str_to_num(parseConfig(wpnid, "ammo"))
+                cvar_cost[wpnid] = str_to_num(parseConfig(wpnid, "cost"))
+                cvar_administrator[wpnid] = str_to_num(parseConfig(wpnid, "administrator"))
+                cvar_zoom_type[wpnid] = str_to_num(parseConfig(wpnid, "zoom_type"))
+                cvar_reload[wpnid] = str_to_num(parseConfig(wpnid, "reload"))
+                cvar_tracer_type[wpnid] = str_to_num(parseConfig(wpnid, "tracer_type"))
+                cvar_tracer_sprite[wpnid] = precache_model(parseConfig(wpnid, "tracer_sprite"))
 
-                format(cvar_tracer[wpnid], 63, "%s", C_parse_rifle_config(wpnid, "tracer"))
+                format(cvar_tracer[wpnid], 63, "%s", parseConfig(wpnid, "tracer"))
 
-                cvar_deploy[wpnid] = str_to_float(C_parse_rifle_config(wpnid, "deploy"))
-                cvar_knockback[wpnid] = str_to_float(C_parse_rifle_config(wpnid, "knockback"))
-                cvar_recoil[wpnid] = str_to_float(C_parse_rifle_config(wpnid, "recoil"))
-                cvar_dmgmultiplier[wpnid] = str_to_float(C_parse_rifle_config(wpnid, "damage"))
-                cvar_speed[wpnid] = str_to_float(C_parse_rifle_config(wpnid, "speed"))
-                cvar_fastrun[wpnid] = str_to_float(C_parse_rifle_config(wpnid, "fastrun"))
-                cvar_sightrecoil[wpnid] = str_to_float(C_parse_rifle_config(wpnid, "sight_recoil"))
+                cvar_deploy[wpnid] = str_to_float(parseConfig(wpnid, "deploy"))
+                cvar_knockback[wpnid] = str_to_float(parseConfig(wpnid, "knockback"))
+                cvar_recoil[wpnid] = str_to_float(parseConfig(wpnid, "recoil"))
+                cvar_dmgmultiplier[wpnid] = str_to_float(parseConfig(wpnid, "damage"))
+                cvar_speed[wpnid] = str_to_float(parseConfig(wpnid, "speed"))
+                cvar_fastrun[wpnid] = str_to_float(parseConfig(wpnid, "fastrun"))
+                cvar_sightrecoil[wpnid] = str_to_float(parseConfig(wpnid, "sight_recoil"))
             }
         }
     }
 }
 
 /* Config Functions */
-public C_read_rifle_sections() {
+public readConfigSections() {
     new sectionNumber = 0
-    new szTemp[64]
+    new temp[64]
 
     /* Rifle */
     for (new i = 0; i < ArraySize(Rifle_InfoText); i++) {
         if (i == 0) {
-            ArrayPushString(Rifle_Names, szTemp)
+            ArrayPushString(Rifle_Names, temp)
             ArrayPushCell(Rifles_Number, sectionNumber)
             i++;
         }
-        ArrayGetString(Rifle_InfoText, sectionNumber, szTemp, charsmax(szTemp))
-        replace(szTemp, 999, "[", "")
-        replace(szTemp, 999, "]", "")
-        replace(szTemp, 999, "^n", "")
-        ArrayPushString(Rifle_Names, szTemp)
+        ArrayGetString(Rifle_InfoText, sectionNumber, temp, charsmax(temp))
+        replace(temp, 999, "[", "")
+        replace(temp, 999, "]", "")
+        replace(temp, 999, "^n", "")
+        ArrayPushString(Rifle_Names, temp)
         ArrayPushCell(Rifles_Number, sectionNumber)
 
         if (ArraySize(Rifle_InfoText) > sectionNumber + NEXT_SECTION) {
@@ -314,13 +261,13 @@ public C_read_rifle_sections() {
     sectionNumber = 0
 }
 
-public C_check_rifle_config() {
+public checkConfig() {
     new messageTex[999]
     new _rifles_File[100] = { "addons/amxmodx/configs/nst_weapons/nst_rifles.ini" }
 
     formatex(messageTex[0], charsmax(messageTex) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG")
     if (file_exists(_rifles_File) == 1) {
-        if (C_rifle_syntaxRules() == -1) {
+        if (configSyntax() == -1) {
             replace(messageTex, 999, "$", "new Array: Rifle_InfoText;")
             server_print("[NST Weapons] %s", messageTex)
             brokenConfig = 1
@@ -330,7 +277,7 @@ public C_check_rifle_config() {
     }
 }
 
-public C_read_rifle_config() {
+public readConfig() {
     new buffer[128]
     new left_comment[128], right_comment[128], left_s_comment[128], right_s_comment[128]
 
@@ -352,9 +299,9 @@ public C_read_rifle_config() {
         ArrayPushString(Rifle_InfoText, buffer)
 
         for (new i = 0; i < ArraySize(Rifle_InfoText); i++) {
-            new szTemp[128]
-            ArrayGetString(Rifle_InfoText, i, szTemp, charsmax(szTemp))
-            if (equali(szTemp, "_THIS_IS_COMMENT_LINE_")) {
+            new temp[128]
+            ArrayGetString(Rifle_InfoText, i, temp, charsmax(temp))
+            if (equali(temp, "_THIS_IS_COMMENT_LINE_")) {
                 ArrayDeleteItem(Rifle_InfoText, i)
             }
         }
@@ -362,77 +309,100 @@ public C_read_rifle_config() {
     fclose(fp_rifles)
 }
 
-stock C_parse_rifle_config(const strKey, const Property[]) {
+stock parseConfig(const strKey, const Property[]) {
+    const administrator = 1
+    const cost = 2
+    const wpn_id = 3
+    const clip = 4
+    const ammo = 5
+    const damage = 6
+    const recoil = 7
+    const deploy = 8
+    const reload = 9
+    const speed = 10
+    const knockback = 11
+    const fastrun = 12
+    const zoom_type = 13
+    const tracer = 14
+    const tracer_type = 15
+    const tracer_sprite = 16
+    const sight_recoil = 17
+    const sight_model = 18
+    const v_model = 19
+    const p_model = 20
+    const w_model = 21
+    const fire_sounds = 22
+
     new parserLine[128]
     new rightValue[128], leftValue[32]
 
     new PropertyNumber
 
     if (equali(Property, "administrator")) {
-        PropertyNumber = s_administrator
+        PropertyNumber = administrator
     }
     if (equali(Property, "cost")) {
-        PropertyNumber = s_cost
+        PropertyNumber = cost
     }
     if (equali(Property, "wpn_id")) {
-        PropertyNumber = s_wpn_id
+        PropertyNumber = wpn_id
     }
     if (equali(Property, "clip")) {
-        PropertyNumber = s_clip
+        PropertyNumber = clip
     }
     if (equali(Property, "ammo")) {
-        PropertyNumber = s_ammo
+        PropertyNumber = ammo
     }
     if (equali(Property, "damage")) {
-        PropertyNumber = s_damage
+        PropertyNumber = damage
     }
     if (equali(Property, "recoil")) {
-        PropertyNumber = s_recoil
+        PropertyNumber = recoil
     }
     if (equali(Property, "deploy")) {
-        PropertyNumber = s_deploy
+        PropertyNumber = deploy
     }
     if (equali(Property, "reload")) {
-        PropertyNumber = s_reload
+        PropertyNumber = reload
     }
     if (equali(Property, "speed")) {
-        PropertyNumber = s_speed
+        PropertyNumber = speed
     }
     if (equali(Property, "knockback")) {
-        PropertyNumber = s_knockback
+        PropertyNumber = knockback
     }
     if (equali(Property, "fastrun")) {
-        PropertyNumber = s_fastrun
+        PropertyNumber = fastrun
     }
     if (equali(Property, "zoom_type")) {
-        PropertyNumber = s_zoom_type
+        PropertyNumber = zoom_type
     }
     if (equali(Property, "tracer")) {
-        PropertyNumber = s_tracer
+        PropertyNumber = tracer
     }
     if (equali(Property, "tracer_type")) {
-        PropertyNumber = s_tracer_type
+        PropertyNumber = tracer_type
     }
     if (equali(Property, "tracer_sprite")) {
-        PropertyNumber = s_tracer_sprite
+        PropertyNumber = tracer_sprite
     }
     if (equali(Property, "sight_recoil")) {
-        PropertyNumber = s_sight_recoil
+        PropertyNumber = sight_recoil
     }
     if (equali(Property, "sight_model")) {
-        PropertyNumber = s_sight_model
+        PropertyNumber = sight_model
     }
     if (equali(Property, "v_model")) {
-        PropertyNumber = s_v_model
+        PropertyNumber = v_model
     }
     if (equali(Property, "p_model")) {
-        PropertyNumber = s_p_model
+        PropertyNumber = p_model
     }
     if (equali(Property, "w_model")) {
-        PropertyNumber = s_w_model
+        PropertyNumber = w_model
     }
     if (equali(Property, "fire_sounds")) {
-        PropertyNumber = s_fire_sounds
+        PropertyNumber = fire_sounds
     }
 
     ArrayGetString(Rifle_InfoText, ArrayGetCell(Rifles_Number, strKey) + PropertyNumber, parserLine, charsmax(parserLine))
@@ -443,582 +413,142 @@ stock C_parse_rifle_config(const strKey, const Property[]) {
     return rightValue
 }
 
-stock C_rifle_syntaxRules() {
-    new buffer[128], leftValue[128], rightValue[128]
-    new lineFixer[24]
-    new firstChar[15], endChar[15]
+stock configSyntax() {
+    new temp[128]
 
-    for (new i = 0; i < ArraySize(Rifle_InfoText); i++) {
-        ArrayGetString(Rifle_InfoText, i, buffer, charsmax(buffer))
-        replace(buffer, 128, "^n", "")
-        strtok(buffer, leftValue, 128, rightValue, 128, '=')
-        trim(leftValue);
-        trim(rightValue);
-
-        new commentLine[128], le[1]
-        strtok(rightValue, le, 1, commentLine, 128, ';')
-        replace(commentLine, 128, "^n", "")
-        trim(commentLine);
-
-        if (!equali(commentLine, "")) {
-            str_replace(rightValue, 999, commentLine, "")
-            str_replace(rightValue, 999, ";", "")
-        }
-
-        formatex(firstChar, charsmax(firstChar), "%c", buffer[0])
-        formatex(endChar, charsmax(endChar), "%c", buffer[strlen(buffer) - 1])
-
-        //1-
-        if (i == 0) {
-            if (!equali(firstChar, "[") || !equali(endChar, "]")) {
-                return -1;
-            }
-        } else if (i == lineFixer[1] + NEXT_SECTION) {
-            lineFixer[1] = lineFixer[1] + NEXT_SECTION
-            if (!equali(firstChar, "[") || !equali(endChar, "]")) {
+    for (new i = 0; i < ArraySize(Rifle_Names); i++) {
+        if (!equali(parseConfig(i, "administrator"), "0")) {
+            if (!equali(parseConfig(i, "administrator"), "1")) {
                 return -1;
             }
         }
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "cost"))
 
-        if (i >= lineFixer[0] + 1 && i < lineFixer[0] + 14) {
-            if (strlen(rightValue) > 8) {
+        if (!isdigit(temp[0])) {
+            return -1;
+        }
+
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "wpn_id"))
+
+        if (str_to_num(temp[0]) == 0 || str_to_num(temp[0]) == 2 || str_to_num(temp[0]) == 29 || str_to_num(temp[0]) > 30 || str_to_num(temp[0]) == 1 || str_to_num(temp[0]) == 10 || str_to_num(temp[0]) == 11 || str_to_num(temp[0]) == 16 || str_to_num(temp[0]) == 17 || str_to_num(temp[0]) == 26 || str_to_num(temp[0]) == 4 || str_to_num(temp[0]) == 9 || str_to_num(temp[0]) == 25) {
+            return -1;
+        }
+
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "clip"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
+        }
+
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "ammo"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
+        }
+
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "damage"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
+        }
+
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "recoil"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
+        }
+
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "deploy"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
+        }
+
+        if (!equali(parseConfig(i, "reload"), "0")) {
+            if (!equali(parseConfig(i, "reload"), "1")) {
                 return -1;
             }
         }
 
-        if (i == s_administrator) {
-            if (equal(leftValue, "administator")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "speed"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
+        }
+
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "knockback"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
+        }
+
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "fastrun"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
+        }
+
+        if (!equali(parseConfig(i, "zoom_type"), "0")) {
+            if (!equali(parseConfig(i, "zoom_type"), "1")) {
+                if (!equali(parseConfig(i, "zoom_type"), "2")) {
+                    if (!equali(parseConfig(i, "zoom_type"), "3")) {
                         return -1;
                     }
                 }
-            } else {
-                return -1
             }
         }
 
-        if (i == lineFixer[2] + s_administrator_next) {
-            lineFixer[2] = lineFixer[2] + NEXT_SECTION;
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "tracer"))
 
-            if (equal(leftValue, "administator")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
-                        return -1;
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
+        new r_color[64], g_color[64], b_color[64], width[64], right[64]
+        strtok(temp, r_color, 64, right, 64, ',')
+        strtok(right, g_color, 64, right, 64, ',')
+        strtok(right, b_color, 64, width, 64, ',')
 
-        if (i == s_cost) {
-            if (equal(leftValue, "cost")) {
-                if (!isdigit(rightValue[0])) {
+        if (!equali(temp[0], "0")) {
+            if (!strlen(r_color) || !strlen(g_color) || !strlen(width)) {
+                if (!isdigit(r_color[0]) || !isdigit(g_color[0]) || !isdigit(b_color[0]) || !isdigit(width[0])) {
                     return -1;
                 }
-            } else {
-                return -1
             }
         }
 
-        if (i == lineFixer[3] + s_cost_next) {
-            lineFixer[3] = lineFixer[3] + NEXT_SECTION;
-
-            if (equal(leftValue, "cost")) {
-                if (!isdigit(rightValue[0])) {
+        if (!equali(parseConfig(i, "tracer_type"), "0")) {
+            if (!equali(parseConfig(i, "tracer_type"), "1")) {
+                if (!equali(parseConfig(i, "tracer_type"), "2")) {
                     return -1;
                 }
-            } else {
-                return -1
             }
         }
 
-        if (i == s_wpn_id) {
-            if (equal(leftValue, "wpn_id")) {
-                if (str_to_num(rightValue[0]) == 0 || str_to_num(rightValue[0]) == 2 || str_to_num(rightValue[0]) == 29 || str_to_num(rightValue[0]) > 30 || str_to_num(rightValue[0]) == 1 || str_to_num(rightValue[0]) == 10 || str_to_num(rightValue[0]) == 11 || str_to_num(rightValue[0]) == 16 || str_to_num(rightValue[0]) == 17 || str_to_num(rightValue[0]) == 26 || str_to_num(rightValue[0]) == 4 || str_to_num(rightValue[0]) == 9 || str_to_num(rightValue[0]) == 25) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "tracer_sprite"), ".spr")) {
+            return -1
         }
 
-        if (i == lineFixer[4] + s_wpn_id_next) {
-            lineFixer[4] = lineFixer[4] + NEXT_SECTION;
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "sight_recoil"))
 
-            if (equal(leftValue, "wpn_id")) {
-                if (str_to_num(rightValue[0]) == 0 || str_to_num(rightValue[0]) == 2 || str_to_num(rightValue[0]) == 29 || str_to_num(rightValue[0]) > 30 || str_to_num(rightValue[0]) == 1 || str_to_num(rightValue[0]) == 10 || str_to_num(rightValue[0]) == 11 || str_to_num(rightValue[0]) == 16 || str_to_num(rightValue[0]) == 17 || str_to_num(rightValue[0]) == 26 || str_to_num(rightValue[0]) == 4 || str_to_num(rightValue[0]) == 9 || str_to_num(rightValue[0]) == 25) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == s_clip) {
-            if (equal(leftValue, "clip")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sight_model"), ".mdl")) {
+            return -1
         }
 
-        if (i == lineFixer[5] + s_clip_next) {
-            lineFixer[5] = lineFixer[5] + NEXT_SECTION;
-
-            if (equal(leftValue, "clip")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "v_model"), ".mdl")) {
+            return -1
         }
 
-        if (i == s_ammo) {
-            if (equal(leftValue, "ammo")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "p_model"), ".mdl")) {
+            return -1
         }
 
-        if (i == lineFixer[6] + s_ammo_next) {
-            lineFixer[6] = lineFixer[6] + NEXT_SECTION;
-
-            if (equal(leftValue, "ammo")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "w_model"), ".mdl")) {
+            return -1
         }
 
-        if (i == s_damage) {
-            if (equal(leftValue, "damage")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[7] + s_damage_next) {
-            lineFixer[7] = lineFixer[7] + NEXT_SECTION;
-
-            if (equal(leftValue, "damage")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_recoil) {
-            if (equal(leftValue, "recoil")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[8] + s_recoil_next) {
-            lineFixer[8] = lineFixer[8] + NEXT_SECTION;
-
-            if (equal(leftValue, "recoil")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_deploy) {
-            if (equal(leftValue, "deploy")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[9] + s_deploy_next) {
-            lineFixer[9] = lineFixer[9] + NEXT_SECTION;
-
-            if (equal(leftValue, "deploy")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_reload) {
-            if (equal(leftValue, "reload")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
-                        return -1;
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[10] + s_reload_next) {
-            lineFixer[10] = lineFixer[10] + NEXT_SECTION;
-
-            if (equal(leftValue, "reload")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
-                        return -1;
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_speed) {
-            if (equal(leftValue, "speed")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[11] + s_speed_next) {
-            lineFixer[11] = lineFixer[11] + NEXT_SECTION;
-
-            if (equal(leftValue, "speed")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_knockback) {
-            if (equal(leftValue, "knockback")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[12] + s_knockback_next) {
-            lineFixer[12] = lineFixer[12] + NEXT_SECTION;
-
-            if (equal(leftValue, "knockback")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_fastrun) {
-            if (equal(leftValue, "fastrun")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[13] + s_fastrun_next) {
-            lineFixer[13] = lineFixer[13] + NEXT_SECTION;
-
-            if (equal(leftValue, "fastrun")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_zoom_type) {
-            if (equal(leftValue, "zoom_type")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
-                        if (!equali(rightValue, "2")) {
-                            if (!equali(rightValue, "3")) {
-                                return -1;
-                            }
-                        }
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[14] + s_zoom_type_next) {
-            lineFixer[14] = lineFixer[14] + NEXT_SECTION;
-
-            if (equal(leftValue, "zoom_type")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
-                        if (!equali(rightValue, "2")) {
-                            if (!equali(rightValue, "3")) {
-                                return -1;
-                            }
-                        }
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_tracer) {
-            if (equal(leftValue, "tracer")) {
-                new r_color[64], g_color[64], b_color[64], width[64], right[64]
-                strtok(rightValue, r_color, 64, right, 64, ',')
-                strtok(right, g_color, 64, right, 64, ',')
-                strtok(right, b_color, 64, width, 64, ',')
-
-                if (!equali(rightValue[0], "0")) {
-                    if (!strlen(r_color) || !strlen(g_color) || !strlen(width)) {
-                        if (!isdigit(r_color[0]) || !isdigit(g_color[0]) || !isdigit(b_color[0]) || !isdigit(width[0])) {
-                            return -1;
-                        }
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[15] + s_tracer_next) {
-            lineFixer[15] = lineFixer[15] + NEXT_SECTION;
-
-            if (equal(leftValue, "tracer")) {
-                new r_color[64], g_color[64], b_color[64], width[64], right[64]
-                strtok(rightValue, r_color, 64, right, 64, ',')
-                strtok(right, g_color, 64, right, 64, ',')
-                strtok(right, b_color, 64, width, 64, ',')
-
-                if (!equali(rightValue[0], "0")) {
-                    if (!strlen(r_color) || !strlen(g_color) || !strlen(width)) {
-                        if (!isdigit(r_color[0]) || !isdigit(g_color[0]) || !isdigit(b_color[0]) || !isdigit(width[0])) {
-                            return -1;
-                        }
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_tracer_type) {
-            if (equal(leftValue, "tracer_type")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
-                        if (!equali(rightValue, "2")) {
-                            return -1;
-                        }
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[16] + s_tracer_type_next) {
-            lineFixer[16] = lineFixer[16] + NEXT_SECTION;
-
-            if (equal(leftValue, "tracer_type")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
-                        if (!equali(rightValue, "2")) {
-                            return -1;
-                        }
-                    }
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_tracer_sprite) {
-            if (equal(leftValue, "tracer_sprite")) {
-                if (!contain(rightValue, ".spr")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[17] + s_tracer_sprite_next) {
-            lineFixer[17] = lineFixer[17] + NEXT_SECTION;
-
-            if (equal(leftValue, "tracer_sprite")) {
-                if (!contain(rightValue, ".spr")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sight_recoil) {
-            if (equal(leftValue, "sight_recoil")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[18] + s_sight_recoil_next) {
-            lineFixer[18] = lineFixer[18] + NEXT_SECTION;
-
-            if (equal(leftValue, "sight_recoil")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sight_model) {
-            if (equal(leftValue, "sight_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[19] + s_sight_model_next) {
-            lineFixer[19] = lineFixer[19] + NEXT_SECTION;
-
-            if (equal(leftValue, "sight_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_v_model) {
-            if (equal(leftValue, "v_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[20] + s_v_model_next) {
-            lineFixer[20] = lineFixer[20] + NEXT_SECTION;
-
-            if (equal(leftValue, "v_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_p_model) {
-            if (equal(leftValue, "p_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[21] + s_p_model_next) {
-            lineFixer[21] = lineFixer[21] + NEXT_SECTION;
-
-            if (equal(leftValue, "p_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_w_model) {
-            if (equal(leftValue, "w_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[22] + s_w_model_next) {
-            lineFixer[22] = lineFixer[22] + NEXT_SECTION;
-
-            if (equal(leftValue, "w_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_fire_sounds) {
-            if (equal(leftValue, "fire_sounds")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[23] + s_fire_sounds_next) {
-            lineFixer[23] = lineFixer[23] + NEXT_SECTION;
-
-            if (equal(leftValue, "fire_sounds")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[0] + END_SECTION) {
-            lineFixer[0] = lineFixer[0] + NEXT_SECTION
-            i++;
+        if (!contain(parseConfig(i, "fire_sounds"), ".wav")) {
+            return -1
         }
     }
 
@@ -1099,18 +629,17 @@ stock drop_all_primary(id) {
 }
 
 stock get_weapon_ent(id, wpnid = 0, wpnName[] = "") {
-    // who knows what wpnName will be
     static newName[24];
 
-    // need to find the name
-    if (wpnid) get_weaponname(wpnid, newName, 23);
+    if (wpnid) {
+        get_weaponname(wpnid, newName, 23);
+    } else {
+        formatex(newName, 23, "%s", wpnName);
+    }
 
-    // go with what we were told
-    else formatex(newName, 23, "%s", wpnName);
-
-    // prefix it if we need to
-    if (!equal(newName, "weapon_", 7))
+    if (!equal(newName, "weapon_", 7)) {
         format(newName, 23, "weapon_%s", newName);
+    }
 
     return fm_find_ent_by_owner(get_maxplayers(), newName, id);
 }
@@ -1139,7 +668,7 @@ stock user_hand_primary(client) {
 
 stock set_weapon_timeidle(id, Float:TimeIdle) {
     new CURRENT_WEAPON = HAS_WEAPON[id]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
 
     if (!is_user_alive(id)) {
         return
@@ -1177,7 +706,7 @@ stock get_rifle_sound(cur_wpn) {
     new total_sound[252], BLANK[252]
     new fs_left[252], fs_right[252]
 
-    formatex(total_sound, charsmax(total_sound), "%s", C_parse_rifle_config(cur_wpn, "fire_sounds"))
+    formatex(total_sound, charsmax(total_sound), "%s", parseConfig(cur_wpn, "fire_sounds"))
     strtok(total_sound, fs_left, 252, fs_right, 252, '*')
     trim(fs_left)
     trim(fs_right)
@@ -1250,9 +779,8 @@ ResetFov(id) {
     }
 }
 
-/* Shitty Weapon Category */
 public NST_Shotguns(client) {
-    new szTemp[64]
+    new temp[64]
     new menu[512], menuxx
     new text[256], len = 0
     new administrator, wpn_id
@@ -1261,25 +789,25 @@ public NST_Shotguns(client) {
 
     if (brokenConfig == 0 && commencing == 0) {
         for (new i = 1; i < ArraySize(Rifle_Names); i++) {
-            administrator = str_to_num(C_parse_rifle_config(i, "administrator"))
-            wpn_id = str_to_num(C_parse_rifle_config(i, "wpn_id"))
+            administrator = str_to_num(parseConfig(i, "administrator"))
+            wpn_id = str_to_num(parseConfig(i, "wpn_id"))
             new menuKey[64]
-            ArrayGetString(Rifle_Names, i, szTemp, charsmax(szTemp))
+            ArrayGetString(Rifle_Names, i, temp, charsmax(temp))
 
             if (wpn_id == 5 || wpn_id == 21) {
                 if (administrator == 0) {
-                    formatex(menu, charsmax(menu), "%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 } else {
-                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 }
             }
         }
     } else {
-        C_check_rifle_config()
+        checkConfig()
     }
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
@@ -1291,7 +819,6 @@ public NST_Shotguns(client) {
     menu_setprop(menuxx, MPROP_EXIT, "\r%L", LANG_PLAYER, "MENU_EXIT")
 
 
-    //Show Menu
     if (is_user_alive(client)) {
         menu_display(client, menuxx, 0)
     } else {
@@ -1302,7 +829,7 @@ public NST_Shotguns(client) {
 }
 
 public NST_Submachine(client) {
-    new szTemp[64]
+    new temp[64]
     new menu[512], menuxx
     new text[256], len = 0
     new administrator, wpn_id
@@ -1311,25 +838,25 @@ public NST_Submachine(client) {
 
     if (brokenConfig == 0 && commencing == 0) {
         for (new i = 1; i < ArraySize(Rifle_Names); i++) {
-            administrator = str_to_num(C_parse_rifle_config(i, "administrator"))
-            wpn_id = str_to_num(C_parse_rifle_config(i, "wpn_id"))
+            administrator = str_to_num(parseConfig(i, "administrator"))
+            wpn_id = str_to_num(parseConfig(i, "wpn_id"))
             new menuKey[64]
-            ArrayGetString(Rifle_Names, i, szTemp, charsmax(szTemp))
+            ArrayGetString(Rifle_Names, i, temp, charsmax(temp))
 
             if (wpn_id == 7 || wpn_id == 12 || wpn_id == 19 || wpn_id == 23 || wpn_id == 30) {
                 if (administrator == 0) {
-                    formatex(menu, charsmax(menu), "%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 } else {
-                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 }
             }
         }
     } else {
-        C_check_rifle_config()
+        checkConfig()
     }
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
@@ -1340,8 +867,6 @@ public NST_Submachine(client) {
 
     menu_setprop(menuxx, MPROP_EXIT, "\r%L", LANG_PLAYER, "MENU_EXIT")
 
-
-    //Show Menu
     if (is_user_alive(client)) {
         menu_display(client, menuxx, 0)
     } else {
@@ -1352,7 +877,7 @@ public NST_Submachine(client) {
 }
 
 public NST_Rifles(client) {
-    new szTemp[64]
+    new temp[64]
     new menu[512], menuxx
     new text[256], len = 0
     new administrator, wpn_id
@@ -1361,25 +886,25 @@ public NST_Rifles(client) {
 
     if (brokenConfig == 0 && commencing == 0) {
         for (new i = 1; i < ArraySize(Rifle_Names); i++) {
-            administrator = str_to_num(C_parse_rifle_config(i, "administrator"))
-            wpn_id = str_to_num(C_parse_rifle_config(i, "wpn_id"))
+            administrator = str_to_num(parseConfig(i, "administrator"))
+            wpn_id = str_to_num(parseConfig(i, "wpn_id"))
             new menuKey[64]
-            ArrayGetString(Rifle_Names, i, szTemp, charsmax(szTemp))
+            ArrayGetString(Rifle_Names, i, temp, charsmax(temp))
 
             if (wpn_id == 8 || wpn_id == 14 || wpn_id == 15 || wpn_id == 22 || wpn_id == 27 || wpn_id == 28) {
                 if (administrator == 0) {
-                    formatex(menu, charsmax(menu), "%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 } else {
-                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 }
             }
         }
     } else {
-        C_check_rifle_config()
+        checkConfig()
     }
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
@@ -1390,8 +915,6 @@ public NST_Rifles(client) {
 
     menu_setprop(menuxx, MPROP_EXIT, "\r%L", LANG_PLAYER, "MENU_EXIT")
 
-
-    //Show Menu
     if (is_user_alive(client)) {
         menu_display(client, menuxx, 0)
     } else {
@@ -1402,7 +925,7 @@ public NST_Rifles(client) {
 }
 
 public NST_Snipers(client) {
-    new szTemp[64]
+    new temp[64]
     new menu[512], menuxx
     new text[256], len = 0
     new administrator, wpn_id
@@ -1411,25 +934,25 @@ public NST_Snipers(client) {
 
     if (brokenConfig == 0 && commencing == 0) {
         for (new i = 1; i < ArraySize(Rifle_Names); i++) {
-            administrator = str_to_num(C_parse_rifle_config(i, "administrator"))
-            wpn_id = str_to_num(C_parse_rifle_config(i, "wpn_id"))
+            administrator = str_to_num(parseConfig(i, "administrator"))
+            wpn_id = str_to_num(parseConfig(i, "wpn_id"))
             new menuKey[64]
-            ArrayGetString(Rifle_Names, i, szTemp, charsmax(szTemp))
+            ArrayGetString(Rifle_Names, i, temp, charsmax(temp))
 
             if (wpn_id == 3 || wpn_id == 13 || wpn_id == 18 || wpn_id == 24) {
                 if (administrator == 0) {
-                    formatex(menu, charsmax(menu), "%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 } else {
-                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 }
             }
         }
     } else {
-        C_check_rifle_config()
+        checkConfig()
     }
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
@@ -1440,8 +963,6 @@ public NST_Snipers(client) {
 
     menu_setprop(menuxx, MPROP_EXIT, "\r%L", LANG_PLAYER, "MENU_EXIT")
 
-
-    //Show Menu
     if (is_user_alive(client)) {
         menu_display(client, menuxx, 0)
     } else {
@@ -1452,7 +973,7 @@ public NST_Snipers(client) {
 }
 
 public NST_Machine(client) {
-    new szTemp[64]
+    new temp[64]
     new menu[512], menuxx
     new text[256], len = 0
     new administrator, wpn_id
@@ -1461,25 +982,25 @@ public NST_Machine(client) {
 
     if (brokenConfig == 0 && commencing == 0) {
         for (new i = 1; i < ArraySize(Rifle_Names); i++) {
-            administrator = str_to_num(C_parse_rifle_config(i, "administrator"))
-            wpn_id = str_to_num(C_parse_rifle_config(i, "wpn_id"))
+            administrator = str_to_num(parseConfig(i, "administrator"))
+            wpn_id = str_to_num(parseConfig(i, "wpn_id"))
             new menuKey[64]
-            ArrayGetString(Rifle_Names, i, szTemp, charsmax(szTemp))
+            ArrayGetString(Rifle_Names, i, temp, charsmax(temp))
 
             if (wpn_id == 20) {
                 if (administrator == 0) {
-                    formatex(menu, charsmax(menu), "%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 } else {
-                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", szTemp, C_parse_rifle_config(i, "cost"))
+                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", temp, parseConfig(i, "cost"))
                     num_to_str(i + 1, menuKey, 999)
                     menu_additem(menuxx, menu, menuKey)
                 }
             }
         }
     } else {
-        C_check_rifle_config()
+        checkConfig()
     }
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
@@ -1490,8 +1011,6 @@ public NST_Machine(client) {
 
     menu_setprop(menuxx, MPROP_EXIT, "\r%L", LANG_PLAYER, "MENU_EXIT")
 
-
-    //Show Menu
     if (is_user_alive(client)) {
         menu_display(client, menuxx, 0)
     } else {
@@ -1501,7 +1020,6 @@ public NST_Machine(client) {
     return PLUGIN_HANDLED
 }
 
-/* All Weapon Properties */
 public Get_NSTWeapon(client, menu, item) {
     new access, callback, data[6], name[64]
     menu_item_getinfo(menu, item, access, data, 5, name, 63, callback)
@@ -1538,10 +1056,10 @@ public Buy_Weapon(id, wpnid) {
         } else if (get_gametime() - roundTime > get_cvar_num("nst_buy_time")) {
             engclient_print(id, engprint_center, "%L", LANG_PLAYER, "BUY_TIME_END", get_cvar_num("nst_buy_time"));
         } else if (HAS_WEAPON[id] == wpnid) {
-            new szTemp[256]
-            ArrayGetString(Rifle_Names, HAS_WEAPON[id], szTemp, charsmax(szTemp))
+            new temp[256]
+            ArrayGetString(Rifle_Names, HAS_WEAPON[id], temp, charsmax(temp))
 
-            client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", szTemp)
+            client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", temp)
         } else if (get_cvar_num("nst_free") ? 1 : wp_cost <= get_user_money(id)) {
             drop_all_primary(id)
 
@@ -1578,7 +1096,7 @@ public Give_Weapon(id, clip, ammo) {
     }
 
     new CURRENT_WEAPON = HAS_WEAPON[id]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
 
     give_item(id, IDtoName(CHANGE_WEAPON))
     cs_set_user_bpammo(id, CHANGE_WEAPON, ammo)
@@ -1590,7 +1108,7 @@ public Give_Weapon(id, clip, ammo) {
 
 public Primary_Attack(entity) {
     new client = pev(entity, pev_owner)
-    pev(client, pev_punchangle, Pushangle[client])
+    pev(client, pev_punchangle, pushangle[client])
 
     return HAM_IGNORED
 }
@@ -1606,7 +1124,7 @@ public Primary_Attack_Post(entity) {
 
     new client = pev(entity, pev_owner)
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
     new wpn_id = get_user_weapon(client, _, _)
 
     if (wpn_id == CHANGE_WEAPON && HAS_WEAPON[client]) {
@@ -1625,14 +1143,14 @@ public Primary_Attack_Post(entity) {
 
         new Float:push[3]
         pev(client, pev_punchangle, push)
-        xs_vec_sub(push, Pushangle[client], push)
+        xs_vec_sub(push, pushangle[client], push)
 
         if (inZoom2[client]) {
             xs_vec_mul_scalar(push, cvar_sightrecoil[CURRENT_WEAPON], push)
         } else {
             xs_vec_mul_scalar(push, cvar_recoil[CURRENT_WEAPON], push)
         }
-        xs_vec_add(push, Pushangle[client], push)
+        xs_vec_add(push, pushangle[client], push)
         set_pev(client, pev_punchangle, push)
         Set_BitVar(IN_EMIT_ATTACK, client)
     }
@@ -1654,7 +1172,7 @@ public Secondary_Attack(entity) {
     Id = get_pdata_cbase(entity, 41, 4)
 
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
     new wpn_id = get_user_weapon(client, _, _)
 
     if (wpn_id == CHANGE_WEAPON && HAS_WEAPON[client]) {
@@ -1696,7 +1214,7 @@ public Weapon_Deploy_Post(entity) {
 
     new id = get_pdata_cbase(entity, m_pPlayer, 4);
     new CURRENT_WEAPON = HAS_WEAPON[id]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
     new wpn_id = get_user_weapon(id, _, _)
 
     if (!pev_valid(entity)) {
@@ -1725,7 +1243,7 @@ public Item_PostFrame(entity) {
     client = get_pdata_cbase(entity, m_pPlayer, 4)
 
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
     new user_wpnid = get_user_weapon(client, _, _)
 
     if (user_wpnid == CHANGE_WEAPON && HAS_WEAPON[client]) {
@@ -1775,7 +1293,7 @@ public Current_Weapon(client) {
     }
 
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
 
     new clip, ammo
     new wpn_id = get_user_weapon(client, clip, ammo)
@@ -1784,9 +1302,9 @@ public Current_Weapon(client) {
         entity_set_float(client, EV_FL_maxspeed, 240.0 + cvar_fastrun[CURRENT_WEAPON])
 
         new v_model[999], p_model[999], sight_model[999]
-        formatex(v_model, charsmax(v_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "v_model"))
-        formatex(p_model, charsmax(p_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "p_model"))
-        formatex(sight_model, charsmax(sight_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "sight_model"))
+        formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
+        formatex(p_model, charsmax(p_model), "models/%s", parseConfig(CURRENT_WEAPON, "p_model"))
+        formatex(sight_model, charsmax(sight_model), "models/%s", parseConfig(CURRENT_WEAPON, "sight_model"))
 
         if (!inZoom2[client]) {
             set_pev(client, pev_viewmodel2, v_model)
@@ -1832,7 +1350,7 @@ public OnPlayerTouchWeaponBox(ent, id) {
 
     new loop_enabled = 1
     for (new i = 1; i < ArraySize(Rifles_Number) && loop_enabled == 1; i++) {
-        if (str_to_num(C_parse_rifle_config(i, "wpn_id")) <= 0) {
+        if (str_to_num(parseConfig(i, "wpn_id")) <= 0) {
             break;
         }
         if (is_valid_ent(ent)) {
@@ -1933,7 +1451,8 @@ public ClientCommand_buyammo1(client) {
     return PLUGIN_HANDLED_MAIN
 }
 
-public remove_modded() {
+public remove_modded() //So bad function, sometimes it works
+{
     for (new entity = 1; entity < 100000; entity++) {
         if (is_valid_ent(entity)) {
             static Class[10]
@@ -1949,13 +1468,12 @@ public remove_modded() {
     return PLUGIN_CONTINUE
 }
 
-/* Forwards */
 public fw_TraceAttack(entity, attacker, Float:flDamage, Float:fDir[3], ptr, iDamageType) {
     if (!is_user_alive(attacker)) {
         return
     }
     new CURRENT_WEAPON = HAS_WEAPON[attacker]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
     new wpn_id = get_user_weapon(attacker, _, _)
 
     if (!equali(cvar_tracer[CURRENT_WEAPON], "0")) {
@@ -1984,16 +1502,16 @@ public fw_TraceAttack(entity, attacker, Float:flDamage, Float:fDir[3], ptr, iDam
                 write_coord(vec2[1])
                 write_coord(vec2[2])
                 write_short(cvar_tracer_sprite[CURRENT_WEAPON])
-                write_byte(1) //framestart
-                write_byte(5) //framerate
-                write_byte(2) //life
-                write_byte(str_to_num(width)) //width
-                write_byte(0) //noise
+                write_byte(1) //Framestart
+                write_byte(5) //Framerate
+                write_byte(2) //Life
+                write_byte(str_to_num(width)) //Width
+                write_byte(0) //Noise
                 write_byte(str_to_num(r_color))
                 write_byte(str_to_num(g_color))
                 write_byte(str_to_num(b_color))
-                write_byte(200) //brightness
-                write_byte(0) //speed
+                write_byte(200) //Brightness
+                write_byte(0) //Speed
                 message_end()
             } else if (cvar_tracer_type[CURRENT_WEAPON] == 1) {
                 static Float:flEnd[3]
@@ -2048,11 +1566,11 @@ public fw_TraceAttack(entity, attacker, Float:flDamage, Float:fDir[3], ptr, iDam
                 engfunc(EngFunc_WriteCoord, end[1])
                 engfunc(EngFunc_WriteCoord, end[2])
                 write_short(cvar_tracer_sprite[CURRENT_WEAPON])
-                write_byte(1) // framerate
-                write_byte(5) // framerate
-                write_byte(2) // life
-                write_byte(str_to_num(width)) // width
-                write_byte(0) // noise
+                write_byte(1) //Framerate
+                write_byte(5) //Framerate
+                write_byte(2) //Life
+                write_byte(str_to_num(width)) //Width
+                write_byte(0) //Noise
                 write_byte(str_to_num(r_color))
                 write_byte(str_to_num(g_color))
                 write_byte(str_to_num(b_color))
@@ -2093,7 +1611,7 @@ public fw_WorldModel(entity, model[]) {
             if (HAS_WEAPON[iOwner]) {
                 entity_set_string(entity, EV_SZ_classname, class_weapons[CURRENT_WEAPON])
 
-                formatex(w_model, charsmax(w_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "w_model"))
+                formatex(w_model, charsmax(w_model), "models/%s", parseConfig(CURRENT_WEAPON, "w_model"))
                 engfunc(EngFunc_SetModel, entity, w_model)
                 HAS_WEAPON[iOwner] = 0
 
@@ -2111,7 +1629,7 @@ public fw_CmdStart(client, uc_handle, seed) {
     }
 
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
     new wpn_id = get_user_weapon(client, _, _)
 
     if (!is_user_alive(client)) {
@@ -2130,7 +1648,7 @@ public fw_CmdStart(client, uc_handle, seed) {
             ResetFov(client)
 
             new v_model[999]
-            formatex(v_model, charsmax(v_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "v_model"))
+            formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
             set_pev(client, pev_viewmodel2, v_model)
 
             inZoom[client] = 0
@@ -2178,7 +1696,7 @@ public fw_CmdStart(client, uc_handle, seed) {
                     if (!inZoom2[client]) {
                         inZoom2[client] = 1
                         new sight_model[999]
-                        formatex(sight_model, charsmax(sight_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "sight_model"))
+                        formatex(sight_model, charsmax(sight_model), "models/%s", parseConfig(CURRENT_WEAPON, "sight_model"))
                         set_pev(client, pev_viewmodel2, sight_model)
                         SetFov(client, 70)
 
@@ -2188,7 +1706,7 @@ public fw_CmdStart(client, uc_handle, seed) {
                     } else {
                         inZoom2[client] = 0
                         new v_model[999]
-                        formatex(v_model, charsmax(v_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "v_model"))
+                        formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
                         set_pev(client, pev_viewmodel2, v_model)
                         ResetFov(client)
                         if (get_cvar_num("nst_zoom_spk")) {
@@ -2215,7 +1733,7 @@ public fw_CmdStart(client, uc_handle, seed) {
                 ResetFov(client)
 
                 new v_model[999]
-                formatex(v_model, charsmax(v_model), "models/%s", C_parse_rifle_config(CURRENT_WEAPON, "v_model"))
+                formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
                 set_pev(client, pev_viewmodel2, v_model)
 
                 inZoom[client] = 0
@@ -2252,7 +1770,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage) {
     }
 
     new CURRENT_WEAPON = HAS_WEAPON[attacker]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
     new wpn_id = get_user_weapon(attacker, _, _)
 
     if (wpn_id == CHANGE_WEAPON && HAS_WEAPON[attacker]) {
@@ -2282,7 +1800,6 @@ public fw_PlayerSpawn_Post(id) {
     }
 }
 
-/* Client Events */
 public client_connect(id) {
     HAS_WEAPON[id] = 0
 }
@@ -2291,7 +1808,6 @@ public client_disconnect(id) {
     HAS_WEAPON[id] = 0
 }
 
-/* Game Events */
 public event_damage(client) {
     if (brokenConfig != 0) {
         return PLUGIN_CONTINUE
@@ -2302,7 +1818,7 @@ public event_damage(client) {
     new weapon, attacker = get_user_attacker(client, weapon)
 
     new CURRENT_WEAPON = HAS_WEAPON[attacker]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
 
     if (!is_user_alive(attacker)) {
         return PLUGIN_CONTINUE
@@ -2334,6 +1850,7 @@ public event_new_round() {
     roundTime = get_gametime()
 }
 
+// we love putin xD
 public client_putinserver(id) {
     if (brokenConfig != 0) {
         return
@@ -2344,7 +1861,6 @@ public client_putinserver(id) {
     }
 }
 
-/* Bot Registration */
 public Do_RegisterHam_Bot(id) {
     if (brokenConfig != 0) {
         return
@@ -2373,7 +1889,7 @@ public nst_bot_weapons(taskid) {
     new id = (taskid - TASK_GIVEWPNBOT)
 
     new CURRENT_WEAPON = HAS_WEAPON[id]
-    new CHANGE_WEAPON = str_to_num(C_parse_rifle_config(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
     new wpn_id = get_user_weapon(id, _, _)
 
     if (!is_valid_ent(id)) {
