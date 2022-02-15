@@ -13,7 +13,7 @@
 #include <fakemeta_stocks>
 
 #define PLUGIN "NST Knifes"
-#define VERSION "1.1"
+#define VERSION "1.2"
 #define AUTHOR "github.com/Kruziikrel1"
 
 /* Other Variables */
@@ -29,28 +29,26 @@
 #define Set_BitVar(%1,%2) %1 |= (1 << (%2 & 31))
 #define UnSet_BitVar(%1,%2) %1 &= ~(1 << (%2 & 31))
 
-/* Offsets */
 const m_pPlayer = 41
 const m_flNextPrimaryAttack = 46
 const m_flNextSecondaryAttack = 47
 const m_flTimeWeaponIdle = 48
 
-/* Arrays */
 new Array: Knife_InfoText;
 new Array: Knife_Names;
 new Array: Knifes_Number;
 
-/* Integers */
-const MAX_WPN = 5000
-new HAS_WEAPON[33]
-new CURRENT_WEAPON[33]
-new IN_BITVAR_JUMP
-
 new brokenConfig = 0
 new commencing = 0
 
-/* Weapon Variables */
+const NEXT_SECTION = 24
+const MAX_WPN = 5000
+new CURRENT_WEAPON[33], HAS_WEAPON[33]
+new IN_BITVAR_JUMP
+
 new class_knifes[MAX_WPN][32]
+new cvar_cost[MAX_WPN]
+new cvar_administrator[MAX_WPN]
 
 new Float:cvar_deploy[MAX_WPN]
 new Float:cvar_knockback[MAX_WPN]
@@ -62,9 +60,6 @@ new Float:cvar_jumpgravity[MAX_WPN]
 new Float:cvar_fastrun[MAX_WPN]
 
 new Float:round_time
-
-new cvar_cost[MAX_WPN]
-new cvar_administrator[MAX_WPN]
 
 public plugin_init() {
     register_plugin(PLUGIN, VERSION, AUTHOR)
@@ -93,9 +88,9 @@ public plugin_startup() {
     Knife_Names = ArrayCreate(64)
     Knife_InfoText = ArrayCreate(128)
 
-    C_read_knife_config()
-    C_read_knife_sections()
-    C_check_knife_config()
+    readConfig()
+    readConfigSections()
+    checkConfig()
 }
 
 public plugin_precache() {
@@ -104,9 +99,9 @@ public plugin_precache() {
     if (brokenConfig == 0) {
         for (new i = 1; i < ArraySize(Knife_Names); i++) {
             new v_model[252], p_model[252], w_model[252]
-            formatex(v_model, charsmax(v_model), "models/%s", C_parse_knife_config(i, "v_model"))
-            formatex(p_model, charsmax(p_model), "models/%s", C_parse_knife_config(i, "p_model"))
-            formatex(w_model, charsmax(w_model), "models/%s", C_parse_knife_config(i, "w_model"))
+            formatex(v_model, charsmax(v_model), "models/%s", parseConfig(i, "v_model"))
+            formatex(p_model, charsmax(p_model), "models/%s", parseConfig(i, "p_model"))
+            formatex(w_model, charsmax(w_model), "models/%s", parseConfig(i, "w_model"))
 
             precache_model(v_model)
             precache_model(p_model)
@@ -118,15 +113,15 @@ public plugin_precache() {
             new hit1[252], hit2[252], hit3[252], hit4[252]
             new slash1[252], slash2[252]
 
-            formatex(hitwall, charsmax(hitwall), "weapons/%s", C_parse_knife_config(i, "sound_hitwall"))
-            formatex(deploy, charsmax(deploy), "weapons/%s", C_parse_knife_config(i, "sound_deploy"))
-            formatex(stab, charsmax(stab), "weapons/%s", C_parse_knife_config(i, "sound_stab"))
-            formatex(slash1, charsmax(slash1), "weapons/%s", C_parse_knife_config(i, "sound_slash1"))
-            formatex(slash2, charsmax(slash2), "weapons/%s", C_parse_knife_config(i, "sound_slash2"))
-            formatex(hit1, charsmax(hit1), "weapons/%s", C_parse_knife_config(i, "sound_hit1"))
-            formatex(hit2, charsmax(hit2), "weapons/%s", C_parse_knife_config(i, "sound_hit2"))
-            formatex(hit3, charsmax(hit3), "weapons/%s", C_parse_knife_config(i, "sound_hit3"))
-            formatex(hit4, charsmax(hit4), "weapons/%s", C_parse_knife_config(i, "sound_hit4"))
+            formatex(hitwall, charsmax(hitwall), "weapons/%s", parseConfig(i, "sound_hitwall"))
+            formatex(deploy, charsmax(deploy), "weapons/%s", parseConfig(i, "sound_deploy"))
+            formatex(stab, charsmax(stab), "weapons/%s", parseConfig(i, "sound_stab"))
+            formatex(slash1, charsmax(slash1), "weapons/%s", parseConfig(i, "sound_slash1"))
+            formatex(slash2, charsmax(slash2), "weapons/%s", parseConfig(i, "sound_slash2"))
+            formatex(hit1, charsmax(hit1), "weapons/%s", parseConfig(i, "sound_hit1"))
+            formatex(hit2, charsmax(hit2), "weapons/%s", parseConfig(i, "sound_hit2"))
+            formatex(hit3, charsmax(hit3), "weapons/%s", parseConfig(i, "sound_hit3"))
+            formatex(hit4, charsmax(hit4), "weapons/%s", parseConfig(i, "sound_hit4"))
 
             precache_sound(hitwall)
             precache_sound(deploy)
@@ -150,71 +145,23 @@ public plugin_precache() {
 
                 format(class_knifes[wpnid], 31, "nst_%s", model)
 
-                cvar_cost[wpnid] = str_to_num(C_parse_knife_config(wpnid, "cost"))
-                cvar_administrator[wpnid] = str_to_num(C_parse_knife_config(wpnid, "administrator"))
+                cvar_cost[wpnid] = str_to_num(parseConfig(wpnid, "cost"))
+                cvar_administrator[wpnid] = str_to_num(parseConfig(wpnid, "administrator"))
 
-                cvar_deploy[wpnid] = str_to_float(C_parse_knife_config(wpnid, "deploy"))
-                cvar_knockback[wpnid] = str_to_float(C_parse_knife_config(wpnid, "knockback"))
-                cvar_dmgmultiplier[wpnid] = str_to_float(C_parse_knife_config(wpnid, "damage"))
-                cvar_speed[wpnid] = str_to_float(C_parse_knife_config(wpnid, "speed"))
-                cvar_speed2[wpnid] = str_to_float(C_parse_knife_config(wpnid, "speed2"))
-                cvar_jumppower[wpnid] = str_to_float(C_parse_knife_config(wpnid, "jump_power"))
-                cvar_jumpgravity[wpnid] = str_to_float(C_parse_knife_config(wpnid, "jump_gravity"))
-                cvar_fastrun[wpnid] = str_to_float(C_parse_knife_config(wpnid, "fastrun"))
+                cvar_deploy[wpnid] = str_to_float(parseConfig(wpnid, "deploy"))
+                cvar_knockback[wpnid] = str_to_float(parseConfig(wpnid, "knockback"))
+                cvar_dmgmultiplier[wpnid] = str_to_float(parseConfig(wpnid, "damage"))
+                cvar_speed[wpnid] = str_to_float(parseConfig(wpnid, "speed"))
+                cvar_speed2[wpnid] = str_to_float(parseConfig(wpnid, "speed2"))
+                cvar_jumppower[wpnid] = str_to_float(parseConfig(wpnid, "jump_power"))
+                cvar_jumpgravity[wpnid] = str_to_float(parseConfig(wpnid, "jump_gravity"))
+                cvar_fastrun[wpnid] = str_to_float(parseConfig(wpnid, "fastrun"))
             }
         }
     }
 }
 
-/*Config Functions */
-const NEXT_SECTION = 24
-const END_SECTION = 22
-const s_administrator = 1
-const s_administrator_next = 25
-const s_cost = 2
-const s_cost_next = 26
-const s_damage = 3
-const s_damage_next = 27
-const s_deploy = 4
-const s_deploy_next = 28
-const s_speed = 5
-const s_speed_next = 29
-const s_speed2 = 6
-const s_speed2_next = 30
-const s_knockback = 7
-const s_knockback_next = 31
-const s_fastrun = 8
-const s_fastrun_next = 32
-const s_jump_power = 9
-const s_jump_power_next = 33
-const s_jump_gravity = 10
-const s_jump_gravity_next = 34
-const s_sound_deploy = 11
-const s_sound_deploy_next = 35
-const s_sound_hit1 = 12
-const s_sound_hit1_next = 36
-const s_sound_hit2 = 13
-const s_sound_hit2_next = 37
-const s_sound_hit3 = 14
-const s_sound_hit3_next = 38
-const s_sound_hit4 = 15
-const s_sound_hit4_next = 39
-const s_sound_hitwall = 16
-const s_sound_hitwall_next = 40
-const s_sound_slash1 = 17
-const s_sound_slash1_next = 41
-const s_sound_slash2 = 18
-const s_sound_slash2_next = 42
-const s_sound_stab = 19
-const s_sound_stab_next = 43
-const s_v_model = 20
-const s_v_model_next = 44
-const s_p_model = 21
-const s_p_model_next = 45
-const s_w_model = 22
-const s_w_model_next = 46
-
-public C_read_knife_sections() {
+public readConfigSections() {
     new sectionNumber = 0
     new temp[64]
 
@@ -242,13 +189,13 @@ public C_read_knife_sections() {
     sectionNumber = 0
 }
 
-public C_check_knife_config() {
+public checkConfig() {
     new messageTex[999]
     new configFile[100] = { "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
 
     formatex(messageTex[0], charsmax(messageTex) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG")
     if (file_exists(configFile) == 1) {
-        if (C_knife_syntaxRules() == -1) {
+        if (configSyntax() == -1) {
             replace(messageTex, 999, "$", "new Array: Knife_InfoText;")
             server_print("[NST Weapons] %s", messageTex)
             brokenConfig = 1
@@ -258,7 +205,7 @@ public C_check_knife_config() {
     }
 }
 
-public C_read_knife_config() {
+public readConfig() {
     new buffer[128]
     new left_comment[128], right_comment[128], left_s_comment[128], right_s_comment[128]
 
@@ -291,98 +238,121 @@ public C_read_knife_config() {
     fclose(fKnifes)
 }
 
-stock C_parse_knife_config(const strKey, const Property[]) {
+stock parseConfig(const strKey, const Property[]) {
+    const administrator = 1
+    const cost = 2
+    const damage = 3
+    const deploy = 4
+    const speed = 5
+    const speed2 = 6
+    const knockback = 7
+    const fastrun = 8
+    const jump_power = 9
+    const jump_gravity = 10
+    const sound_deploy = 11
+    const sound_hit1 = 12
+    const sound_hit2 = 13
+    const sound_hit3 = 14
+    const sound_hit4 = 15
+    const sound_hitwall = 16
+    const sound_slash1 = 17
+    const sound_slash2 = 18
+    const sound_stab = 19
+    const v_model = 20
+    const p_model = 21
+    const w_model = 22
+
     new parserLine[128]
     new rightValue[128], leftValue[32]
 
     new PropertyNumber
 
     if (equali(Property, "administrator")) {
-        PropertyNumber = s_administrator
+        PropertyNumber = administrator
     }
 
     if (equali(Property, "cost")) {
-        PropertyNumber = s_cost
+        PropertyNumber = cost
     }
 
     if (equali(Property, "damage")) {
-        PropertyNumber = s_damage
+        PropertyNumber = damage
     }
 
     if (equali(Property, "deploy")) {
-        PropertyNumber = s_deploy
+        PropertyNumber = deploy
     }
 
     if (equali(Property, "speed")) {
-        PropertyNumber = s_speed
+        PropertyNumber = speed
     }
 
     if (equali(Property, "speed2")) {
-        PropertyNumber = s_speed2
+        PropertyNumber = speed2
     }
 
     if (equali(Property, "knockback")) {
-        PropertyNumber = s_knockback
+        PropertyNumber = knockback
     }
 
     if (equali(Property, "jump_power")) {
-        PropertyNumber = s_jump_power
+        PropertyNumber = jump_power
     }
 
     if (equali(Property, "jump_gravity")) {
-        PropertyNumber = s_jump_gravity
+        PropertyNumber = jump_gravity
     }
 
     if (equali(Property, "fastrun")) {
-        PropertyNumber = s_fastrun
+        PropertyNumber = fastrun
     }
 
     if (equali(Property, "sound_deploy")) {
-        PropertyNumber = s_sound_deploy
+        PropertyNumber = sound_deploy
     }
 
     if (equali(Property, "sound_hit1")) {
-        PropertyNumber = s_sound_hit1
+        PropertyNumber = sound_hit1
     }
 
     if (equali(Property, "sound_hit2")) {
-        PropertyNumber = s_sound_hit2
+        PropertyNumber = sound_hit2
     }
 
     if (equali(Property, "sound_hit3")) {
-        PropertyNumber = s_sound_hit3
+        PropertyNumber = sound_hit3
     }
 
     if (equali(Property, "sound_hit4")) {
-        PropertyNumber = s_sound_hit4
+        PropertyNumber = sound_hit4
     }
 
     if (equali(Property, "sound_hitwall")) {
-        PropertyNumber = s_sound_hitwall
+        PropertyNumber = sound_hitwall
     }
 
     if (equali(Property, "sound_slash1")) {
-        PropertyNumber = s_sound_slash1
+        PropertyNumber = sound_slash1
     }
 
     if (equali(Property, "sound_slash2")) {
-        PropertyNumber = s_sound_slash2
+        PropertyNumber = sound_slash2
     }
 
     if (equali(Property, "sound_stab")) {
-        PropertyNumber = s_sound_stab
+        PropertyNumber = sound_stab
     }
 
     if (equali(Property, "v_model")) {
-        PropertyNumber = s_v_model
+        PropertyNumber = v_model
     }
 
     if (equali(Property, "p_model")) {
-        PropertyNumber = s_p_model
+        PropertyNumber = p_model
     }
 
     if (equali(Property, "w_model")) {
-        PropertyNumber = s_w_model
+        PropertyNumber = w_model
     }
 
     ArrayGetString(Knife_InfoText, ArrayGetCell(Knifes_Number, strKey) + PropertyNumber, parserLine, charsmax(parserLine))
@@ -393,541 +363,121 @@ stock C_parse_knife_config(const strKey, const Property[]) {
     return rightValue
 }
 
-stock C_knife_syntaxRules() {
-    new buffer[128], leftValue[128], rightValue[128]
-    new lineFixer[24]
-    new firstChar[15], endChar[15]
+stock configSyntax() {
+    new temp[128]
 
-    for (new i = 0; i < ArraySize(Knife_InfoText); i++) {
-        ArrayGetString(Knife_InfoText, i, buffer, charsmax(buffer))
-        replace(buffer, 128, "^n", "")
-        strtok(buffer, leftValue, 128, rightValue, 128, '=')
-        trim(leftValue);
-        trim(rightValue);
-
-        new commentLine[128], le[1]
-        strtok(rightValue, le, 1, commentLine, 128, ';')
-        replace(commentLine, 128, "^n", "")
-        trim(commentLine);
-
-        if (!equali(commentLine, "")) {
-            str_replace(rightValue, 999, commentLine, "")
-            str_replace(rightValue, 999, ";", "")
-        }
-
-        formatex(firstChar, charsmax(firstChar), "%c", buffer[0])
-        formatex(endChar, charsmax(endChar), "%c", buffer[strlen(buffer) - 1])
-
-        //1-
-        if (i == 0) {
-            if (!equali(firstChar, "[") || !equali(endChar, "]")) {
-                return -1;
-            }
-        } else if (i == lineFixer[1] + NEXT_SECTION) {
-            lineFixer[1] = lineFixer[1] + NEXT_SECTION
-            if (!equali(firstChar, "[") || !equali(endChar, "]")) {
+    for (new i = 0; i < ArraySize(Knife_Names); i++) {
+        if (!equali(parseConfig(i, "administrator"), "0")) {
+            if (!equali(parseConfig(i, "administrator"), "1")) {
                 return -1;
             }
         }
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "cost"))
 
-        if (i == s_administrator) {
-            if (equal(leftValue, "administator")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
-                        return -1;
-                    }
-                }
-            } else {
-                return -1
-            }
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == lineFixer[2] + s_administrator_next) {
-            lineFixer[2] = lineFixer[2] + NEXT_SECTION;
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "damage"))
 
-            if (equal(leftValue, "administator")) {
-                if (!equali(rightValue, "0")) {
-                    if (!equali(rightValue, "1")) {
-                        return -1;
-                    }
-                }
-            } else {
-                return -1
-            }
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == s_cost) {
-            if (equal(leftValue, "cost")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "deploy"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == lineFixer[3] + s_cost_next) {
-            lineFixer[3] = lineFixer[3] + NEXT_SECTION;
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "speed"))
 
-            if (equal(leftValue, "cost")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == s_damage) {
-            if (equal(leftValue, "damage")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "speed2"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == lineFixer[4] + s_damage_next) {
-            lineFixer[4] = lineFixer[4] + NEXT_SECTION;
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "knockback"))
 
-            if (equal(leftValue, "damage")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == s_deploy) {
-            if (equal(leftValue, "deploy")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "fastrun"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == lineFixer[5] + s_deploy_next) {
-            lineFixer[5] = lineFixer[5] + NEXT_SECTION;
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "jump_power"))
 
-            if (equal(leftValue, "deploy")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == s_speed) {
-            if (equal(leftValue, "speed")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        formatex(temp, charsmax(temp), "%s", parseConfig(i, "jump_gravity"))
+
+        if (!isdigit(temp[0])) {
+            return -1;
         }
 
-        if (i == lineFixer[6] + s_speed_next) {
-            lineFixer[6] = lineFixer[6] + NEXT_SECTION;
-
-            if (equal(leftValue, "speed")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sound_deploy"), ".wav")) {
+            return -1
         }
 
-        if (i == s_speed2) {
-            if (equal(leftValue, "speed2")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sound_hit1"), ".wav")) {
+            return -1
         }
 
-        if (i == lineFixer[7] + s_speed2_next) {
-            lineFixer[7] = lineFixer[7] + NEXT_SECTION;
-
-            if (equal(leftValue, "speed2")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sound_hit2"), ".wav")) {
+            return -1
         }
 
-        if (i == s_knockback) {
-            if (equal(leftValue, "knockback")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sound_hit3"), ".wav")) {
+            return -1
         }
 
-        if (i == lineFixer[8] + s_knockback_next) {
-            lineFixer[8] = lineFixer[8] + NEXT_SECTION;
-
-            if (equal(leftValue, "knockback")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sound_hit4"), ".wav")) {
+            return -1
         }
 
-        if (i == s_fastrun) {
-            if (equal(leftValue, "fastrun")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sound_hitwall"), ".wav")) {
+            return -1
         }
 
-        if (i == lineFixer[9] + s_fastrun_next) {
-            lineFixer[9] = lineFixer[9] + NEXT_SECTION;
-
-            if (equal(leftValue, "fastrun")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sound_slash1"), ".wav")) {
+            return -1
         }
 
-        if (i == s_jump_power) {
-            if (equal(leftValue, "jump_power")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sound_slash2"), ".wav")) {
+            return -1
         }
 
-        if (i == lineFixer[10] + s_jump_power_next) {
-            lineFixer[11] = lineFixer[11] + NEXT_SECTION;
-
-            if (equal(leftValue, "jump_power")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "sound_stab"), ".wav")) {
+            return -1
         }
 
-        if (i == s_jump_gravity) {
-            if (equal(leftValue, "jump_gravity")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "v_model"), ".mdl")) {
+            return -1
         }
 
-        if (i == lineFixer[11] + s_jump_gravity_next) {
-            lineFixer[11] = lineFixer[11] + NEXT_SECTION;
-
-            if (equal(leftValue, "jump_gravity")) {
-                if (!isdigit(rightValue[0])) {
-                    return -1;
-                }
-            } else {
-                return -1
-            }
+        if (!contain(parseConfig(i, "p_model"), ".mdl")) {
+            return -1
         }
 
-        if (i == s_sound_deploy) {
-            if (equal(leftValue, "sound_deploy")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[12] + s_sound_deploy_next) {
-            lineFixer[12] = lineFixer[12] + NEXT_SECTION;
-
-            if (equal(leftValue, "sound_deploy")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sound_hit1) {
-            if (equal(leftValue, "sound_hit1")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[13] + s_sound_hit1_next) {
-            lineFixer[13] = lineFixer[13] + NEXT_SECTION;
-
-            if (equal(leftValue, "sound_hit1")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sound_hit2) {
-            if (equal(leftValue, "sound_hit2")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[14] + s_sound_hit2_next) {
-            lineFixer[14] = lineFixer[14] + NEXT_SECTION;
-
-            if (equal(leftValue, "sound_hit2")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sound_hit3) {
-            if (equal(leftValue, "sound_hit3")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[15] + s_sound_hit3_next) {
-            lineFixer[15] = lineFixer[15] + NEXT_SECTION;
-
-            if (equal(leftValue, "sound_hit3")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sound_hit4) {
-            if (equal(leftValue, "sound_hit4")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[16] + s_sound_hit4_next) {
-            lineFixer[16] = lineFixer[16] + NEXT_SECTION;
-
-            if (equal(leftValue, "sound_hit4")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sound_hitwall) {
-            if (equal(leftValue, "sound_hitwall")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[17] + s_sound_hitwall_next) {
-            lineFixer[17] = lineFixer[17] + NEXT_SECTION;
-
-            if (equal(leftValue, "sound_hitwall")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sound_slash1) {
-            if (equal(leftValue, "sound_slash1")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[18] + s_sound_slash1_next) {
-            lineFixer[18] = lineFixer[18] + NEXT_SECTION;
-
-            if (equal(leftValue, "sound_slash1")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sound_slash2) {
-            if (equal(leftValue, "sound_slash2")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[19] + s_sound_slash2_next) {
-            lineFixer[19] = lineFixer[19] + NEXT_SECTION;
-
-            if (equal(leftValue, "sound_slash2")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_sound_stab) {
-            if (equal(leftValue, "sound_stab")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[20] + s_sound_stab_next) {
-            lineFixer[20] = lineFixer[20] + NEXT_SECTION;
-
-            if (equal(leftValue, "sound_stab")) {
-                if (!contain(rightValue, ".wav")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_v_model) {
-            if (equal(leftValue, "v_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[21] + s_v_model_next) {
-            lineFixer[21] = lineFixer[21] + NEXT_SECTION;
-
-            if (equal(leftValue, "v_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_p_model) {
-            if (equal(leftValue, "p_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[22] + s_p_model_next) {
-            lineFixer[22] = lineFixer[22] + NEXT_SECTION;
-
-            if (equal(leftValue, "p_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == s_w_model) {
-            if (equal(leftValue, "w_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[23] + s_w_model_next) {
-            lineFixer[23] = lineFixer[23] + NEXT_SECTION;
-
-            if (equal(leftValue, "w_model")) {
-                if (!contain(rightValue, ".mdl")) {
-                    return -1
-                }
-            } else {
-                return -1
-            }
-        }
-
-        if (i == lineFixer[0] + END_SECTION) {
-            lineFixer[0] = lineFixer[0] + NEXT_SECTION
-            i++;
+        if (!contain(parseConfig(i, "w_model"), ".mdl")) {
+            return -1
         }
     }
 
     return 0;
 }
 
-/*All Stocks */
 stock create_velocity_vector(victim, attacker, Float: velocity[3], Float: knockback) {
     if (!is_user_alive(attacker)) {
         return 0;
@@ -977,13 +527,12 @@ stock set_player_nextattack(id, Float: nexttime) {
 
 stock format_knife_sound(wpn_id, const config_sound[]) {
     new formatted_sound[512]
-    formatex(formatted_sound, charsmax(formatted_sound), "weapons/%s", C_parse_knife_config(wpn_id, config_sound))
+    formatex(formatted_sound, charsmax(formatted_sound), "weapons/%s", parseConfig(wpn_id, config_sound))
     return formatted_sound
 }
 
-/* Menu Function */
 public NST_Knife(client) {
-    new szTemp[64]
+    new temp[64]
     new menu[512], menuxx
     new text[256], len = 0
     new administrator
@@ -992,22 +541,22 @@ public NST_Knife(client) {
 
     if (brokenConfig == 0 && commencing == 0) {
         for (new i = 1; i < ArraySize(Knife_Names); i++) {
-            administrator = str_to_num(C_parse_knife_config(i, "administrator"))
+            administrator = str_to_num(parseConfig(i, "administrator"))
             new menuKey[64]
-            ArrayGetString(Knife_Names, i, szTemp, charsmax(szTemp))
+            ArrayGetString(Knife_Names, i, temp, charsmax(temp))
 
             if (administrator == 0) {
-                formatex(menu, charsmax(menu), "%s 	\r$%s", szTemp, C_parse_knife_config(i, "cost"))
+                formatex(menu, charsmax(menu), "%s 	\r$%s", temp, parseConfig(i, "cost"))
                 num_to_str(i + 1, menuKey, 999)
                 menu_additem(menuxx, menu, menuKey)
             } else {
-                formatex(menu, charsmax(menu), "\y%s 	\r$%s", szTemp, C_parse_knife_config(i, "cost"))
+                formatex(menu, charsmax(menu), "\y%s 	\r$%s", temp, parseConfig(i, "cost"))
                 num_to_str(i + 1, menuKey, 999)
                 menu_additem(menuxx, menu, menuKey)
             }
         }
     } else {
-        C_check_knife_config()
+        checkConfig()
     }
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
@@ -1018,7 +567,6 @@ public NST_Knife(client) {
 
     menu_setprop(menuxx, MPROP_EXIT, "\r%L", LANG_PLAYER, "MENU_EXIT")
 
-    //Show Menu
     if (is_user_alive(client)) {
         menu_display(client, menuxx, 0)
     } else {
@@ -1028,7 +576,6 @@ public NST_Knife(client) {
     return PLUGIN_HANDLED
 }
 
-/* All Knife Properties */
 public Get_NSTMelee(client, menu, item) {
     new access, callback, data[6], name[64]
     menu_item_getinfo(menu, item, access, data, 5, name, 63, callback)
@@ -1060,10 +607,10 @@ public Buy_Weapon(id, wpnid) {
         } else if (get_gametime() - round_time > get_cvar_num("nst_buy_time")) {
             engclient_print(id, engprint_center, "%L", LANG_PLAYER, "BUY_TIME_END", get_cvar_num("nst_buy_time"));
         } else if (HAS_WEAPON[id] == wpnid) {
-            new szTemp[256]
-            ArrayGetString(Knife_Names, HAS_WEAPON[id], szTemp, charsmax(szTemp))
+            new temp[256]
+            ArrayGetString(Knife_Names, HAS_WEAPON[id], temp, charsmax(temp))
 
-            client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", szTemp)
+            client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", temp)
         } else if (get_cvar_num("nst_free") ? 1 : wp_cost <= get_user_money(id)) {
             CURRENT_WEAPON[id] = wpnid
             HAS_WEAPON[id] = wpnid
@@ -1103,8 +650,8 @@ public Current_Weapon(client) {
 
     if (wpn_id == CSW_KNIFE && HAS_WEAPON[client]) {
         new v_model[999], p_model[999]
-        formatex(v_model, charsmax(v_model), "models/%s", C_parse_knife_config(CURRENT_WEAPON, "v_model"))
-        formatex(p_model, charsmax(p_model), "models/%s", C_parse_knife_config(CURRENT_WEAPON, "p_model"))
+        formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
+        formatex(p_model, charsmax(p_model), "models/%s", parseConfig(CURRENT_WEAPON, "p_model"))
 
         set_pev(client, pev_viewmodel2, v_model)
         set_pev(client, pev_weaponmodel2, p_model)
@@ -1178,7 +725,6 @@ public Weapon_Deploy_Post(entity) {
     return HAM_IGNORED
 }
 
-/* Forwards */
 public fw_EmitSound(entity, channel, sound[], Float: volume, Float: attenuation, fFlags, pitch) {
     if (!is_user_alive(entity)) {
         return FMRES_IGNORED
@@ -1301,7 +847,6 @@ public fw_TakeDamage(victim, inflictor, attacker, Float: damage) {
     }
 }
 
-/* Client Events */
 public client_putinserver(id) {
     if (brokenConfig != 0) {
         return
@@ -1312,7 +857,6 @@ public client_putinserver(id) {
     }
 }
 
-/* Game Events */
 public event_commencing() {
     commencing = 1
 
@@ -1373,7 +917,6 @@ public event_new_round() {
     round_time = get_gametime()
 }
 
-/* Bot Registration */
 public Do_RegisterHam_Bot(id) {
     if (brokenConfig != 0) {
         return
