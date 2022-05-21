@@ -67,7 +67,7 @@ nst_weapons_secondary.amxx
 - If you set "reload" value to "0" player will be able to shoot until the all ammo runs out.
 - If you increase "speed" value, player speed will increase while holding that NST weapon.
 - If you increase "knockback" value, enemy will you shoot is knocked back.
-- If you set "zoom_type" value to "3" when you click right click open's custom sight model.
+- If you set "zoom_type or secondary_type" value to "3" when you click right click open's your custom sight model. You should add "sight_model" but if you dont set this value you can leave at blank "sight_model" value.
  #### Secondary Types:
   ```
 "4" = When you hold right click pistol auto shoots
