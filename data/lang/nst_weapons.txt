@@ -1,13 +1,17 @@
 [en]
 MENU_TITLE = NST Weapons [github.com/Kruziikrel1]
-MENU_ITEM1 = Pistols
-MENU_ITEM2 = Shotguns
-MENU_ITEM3 = Sub-Machine Guns
-MENU_ITEM4 = Rifles
-MENU_ITEM5 = Sniper-Rifles
-MENU_ITEM6 = Machine Gun
-MENU_ITEM7 = Knifes
-MENU_ITEM8 = Grenades
+MENU_ITEM1 = Primary Weapons
+MENU_ITEM2 = Secondary Weapons
+MENU_ITEM3 = Melee
+MENU_ITEM4 = Grenades
+MENU_ITEM5 = Rebuy Previous Weapons
+MENU_ITEM6 = Automatic Buy Weapons
+
+MENU2_ITEM1 = Shotguns
+MENU2_ITEM2 = Sub-machine
+MENU2_ITEM3 = Snipers
+MENU2_ITEM4 = Rifles
+MENU2_ITEM5 = Machine Gun
 
 MENU_NEXT = Next
 MENU_BACK = Back
@@ -17,6 +21,8 @@ ACCESS_DENIED = You dont have a permission!
 
 USER_IS_DEAD = You must be alive to use this command!
 
+AUTO_BUY_ENABLED = Automatic Buy Enabled!
+AUTO_BUY_DISABLED = Automatic Buy Disabled!
 FILE_NOT_LOADED = Config file is not found! (parameters="$")
 BROKEN_CONFIG = Failed to load config file! (parameters="$")
 INSUFFICIENT_MONEY = You don't have enough money for buy this weapon!
