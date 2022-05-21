@@ -64,7 +64,7 @@ nst_weapons_secondary.amxx
 - [x] If you follow these rules, you will not get any error.
   
 ### Some Infos:
-- If you set "reload" value to "1" player will be able to shoot until the ammo runs out.
+- If you set "reload" value to "0" player will be able to shoot until the all ammo runs out.
 - If you increase "speed" value, player speed will increase while holding that NST weapon.
 - If you increase "knockback" value, enemy will you shoot is knocked back.
 - If you set "zoom_type" value to "3" when you click right click open's custom sight model.
