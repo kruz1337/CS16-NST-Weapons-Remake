@@ -54,7 +54,7 @@ nst_weapons_secondary.amxx
 * Use the value order in the config file. If you change values place you will get error.
 * Do not set Digit values in Sound Files, Model Files and Sprite Files.
 * Do not add any values other than those in the config file.
-* Set "trace" value like `"255, 255, 255, 2"`. Don't delete comma and don't change different operators to comma.
+* Set "trace" value like `"R, G, B, TRACER_THICKNESS"`. Don't delete comma and don't change different operators to comma.
 * Set "wpn_id" value to `"1, 10, 11, 16, 17 or 26"` in Pistol config file. 
 * Set "wpn_id" value to `"3, 5,7, 8, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28 or 30"`
   in Rifles config file.
