@@ -3,10 +3,10 @@ This repository is AMX Mod X plugin for add new customizable weapons to Counter-
 
 ![](https://img.shields.io/badge/language-pawn-a68762?style=flat) ![](https://img.shields.io/badge/game-cs16-yellow?style=flat) ![](https://img.shields.io/badge/license-GNU-green?style=flat)
 
-![Image of RequestX International Developer Group on Discord](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/thumbnail.png)
+![Image of RequestX International Developer Group on Discord](https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/thumbnail.png)
 
 ## How to build NST Weapons Remake Script files?
-* First of all you should download project files on project page or clone this repository from GitBash or GitHub Desktop on your PC. [NST-Weapons-Remake.zip](https://github.com/Kruziikrel1/CS16-NST-Weapons-Remake/releases/)
+* First of all you should download project files on project page or clone this repository from GitBash or GitHub Desktop on your PC. [NST-Weapons-Remake.zip](https://github.com/kruz1337/CS16-NST-Weapons-Remake/releases/)
 
 * If you download project files with manual method you need extract zip file.
 
@@ -84,7 +84,7 @@ nst_weapons_secondary.amxx
   #### Example Images:
   | Zoom Type 1 | Zoom Type 2 | Tracer Type 1 | Tracer Type 2 |
   |-------------|-------------|---------------|---------------|
-  |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/zoomtype1.png)|![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/zoomtype2.png)             |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype1.png)                |![](https://raw.githubusercontent.com/Kruziikrel1/CS16-NST-Weapons-Remake/main/tracertype2.png)              |
+  |![](https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/zoomtype1.png)|![](https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/zoomtype2.png)             |![](https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/tracertype1.png)                |![](https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/tracertype2.png)              |
   
   | Reload 0 |
   |-------------|
