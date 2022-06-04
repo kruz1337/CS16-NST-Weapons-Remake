@@ -27,8 +27,6 @@ public plugin_init() {
     register_cvar("nst_zoom_spk", "1")
 
     RegisterHam(Ham_Spawn, "player", "player_spawn", 1)
-
-    BrokenConfig()
 }
 
 /* Default Menu */
@@ -197,28 +195,4 @@ public player_spawn(client) {
     }
 
     set_task(1.2, "autobuy_previous_task", client)
-}
-
-public BrokenConfig() {
-    new messageTex[100], messageTex2[100]
-    new const files[][] = { "addons/amxmodx/configs/nst_weapons/nst_rifles.ini", "addons/amxmodx/configs/nst_weapons/nst_pistols.ini", "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
-
-    formatex(messageTex[0], charsmax(messageTex) - 0, "%L", LANG_PLAYER, "FILE_NOT_LOADED")
-    formatex(messageTex2[0], charsmax(messageTex2) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG")
-
-    new hasErr = 0
-    if (file_exists(files[0]) == 0) {
-        replace(messageTex, 999, "$", "./.../nst_rifles.ini")
-        hasErr = 1
-    } else if (file_exists(files[1]) == 0) {
-        replace(messageTex, 999, "$", "./.../nst_pistols.ini")
-        hasErr = 1
-    } else if (file_exists(files[2]) == 0) {
-        replace(messageTex, 999, "$", "./.../nst_knifes.ini")
-        hasErr = 1
-    }
-
-    if (hasErr == 1) {
-        server_print("[NST Weapons] %s", messageTex)
-    }
 }
