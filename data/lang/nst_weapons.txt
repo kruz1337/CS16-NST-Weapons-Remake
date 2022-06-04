@@ -1,5 +1,5 @@
 [en]
-MENU_TITLE = NST Weapons [github.com/Kruziikrel1]
+MENU_TITLE = NST Weapons [github.com/kruz1337]
 MENU_ITEM1 = Primary Weapons
 MENU_ITEM2 = Secondary Weapons
 MENU_ITEM3 = Melee
