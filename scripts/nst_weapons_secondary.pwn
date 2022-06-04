@@ -131,91 +131,126 @@ public plugin_init() {
     }
 }
 
+public plugin_precache() {
+    plugin_startup()
+
+    if (brokenConfig != 0) {
+        return
+    }
+
+    for (new i = 1; i < ArraySize(Pistol_Names); i++) {
+        new v_model[252], p_model[252], w_model[252], sight_model[252]
+        formatex(v_model, charsmax(v_model), "models/%s", parseConfig(i, "v_model"))
+        formatex(p_model, charsmax(p_model), "models/%s", parseConfig(i, "p_model"))
+        formatex(w_model, charsmax(w_model), "models/%s", parseConfig(i, "w_model"))
+
+        precache_model(v_model)
+        precache_model(p_model)
+        precache_model(w_model)
+
+        if (equali(parseConfig(i, "secondary_type"), "3")) {
+            formatex(sight_model, charsmax(sight_model), "models/%s", parseConfig(i, "sight_model"))
+            precache_model(sight_model)
+        }
+    }
+
+    for (new i = 1; i < ArraySize(Pistol_Names); i++) {
+        new total_sound[252]
+        new fs_left[252], fs_right[252]
+
+        formatex(total_sound, charsmax(total_sound), "%s", parseConfig(i, "fire_sounds"))
+        strtok(total_sound, fs_left, 252, fs_right, 252, '*')
+        trim(fs_left)
+        trim(fs_right)
+
+        if (equali(fs_left, "") || equali(fs_right, "")) {
+            format(total_sound, 252, "weapons/%s", total_sound)
+
+            precache_sound(total_sound)
+        } else {
+            format(fs_left, 252, "weapons/%s", fs_left)
+            format(fs_right, 252, "weapons/%s", fs_right)
+
+            precache_sound(fs_left)
+            precache_sound(fs_right)
+        }
+    }
+
+    new model[64]
+    for (new wpnid = 0; wpnid < ArraySize(Pistol_Numbers); wpnid++) {
+        if (wpnid != 0) {
+            ArrayGetString(Pistol_Names, wpnid, model, charsmax(model))
+
+            trim(model)
+            replace(model, 64, " ", "_")
+            strtolower(model)
+
+            format(class_weapons[wpnid], 31, "nst_%s", model)
+
+            cvar_clip[wpnid] = str_to_num(parseConfig(wpnid, "clip"))
+            cvar_ammo[wpnid] = str_to_num(parseConfig(wpnid, "ammo"))
+            cvar_cost[wpnid] = str_to_num(parseConfig(wpnid, "cost"))
+            cvar_administrator[wpnid] = str_to_num(parseConfig(wpnid, "administrator"))
+            cvar_secondary_type[wpnid] = str_to_num(parseConfig(wpnid, "secondary_type"))
+            cvar_reload[wpnid] = str_to_num(parseConfig(wpnid, "reload"))
+            cvar_tracer_type[wpnid] = str_to_num(parseConfig(wpnid, "tracer_type"))
+            cvar_tracer_sprite[wpnid] = precache_model(parseConfig(wpnid, "tracer_sprite"))
+
+            format(cvar_tracer[wpnid], 63, "%s", parseConfig(wpnid, "tracer"))
+
+            cvar_deploy[wpnid] = str_to_float(parseConfig(wpnid, "deploy"))
+            cvar_knockback[wpnid] = str_to_float(parseConfig(wpnid, "knockback"))
+            cvar_recoil[wpnid] = str_to_float(parseConfig(wpnid, "recoil"))
+            cvar_dmgmultiplier[wpnid] = str_to_float(parseConfig(wpnid, "damage"))
+            cvar_speed[wpnid] = str_to_float(parseConfig(wpnid, "speed"))
+            cvar_fastrun[wpnid] = str_to_float(parseConfig(wpnid, "fastrun"))
+            cvar_sightrecoil[wpnid] = str_to_float(parseConfig(wpnid, "sight_recoil"))
+        }
+    }
+}
+
 public plugin_startup() {
+    new _pistols_File[100] = { "addons/amxmodx/configs/nst_weapons/nst_pistols.ini" }
+
+    if (!file_exists(_pistols_File)) {
+        new log_file[999]
+        formatex(log_file[0], charsmax(log_file) - 0, "%L", LANG_PLAYER, "FILE_NOT_LOADED")
+        replace(log_file, 999, "$", "./.../nst_pistols.ini")
+
+        server_print("[NST Weapons] %s", log_file)
+        brokenConfig = 1
+
+        return
+    }
+
     Pistol_Numbers = ArrayCreate(1)
     Pistol_Names = ArrayCreate(64)
     Pistol_InfoText = ArrayCreate(128)
 
     readConfig()
     readConfigSections()
-    checkConfig()
+
+    if (configSyntax() == -1) {
+        new log_file[999]
+        formatex(log_file[0], charsmax(log_file) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG")
+        replace(log_file, 999, "$", "./.../nst_pistols.ini")
+
+        server_print("[NST Weapons] %s", log_file)
+        brokenConfig = 1
+
+        return;
+    }
 }
 
-public plugin_precache() {
-    plugin_startup()
+public config_error_log() {
+    new _pistols_File[100] = { "addons/amxmodx/configs/nst_weapons/nst_pistols.ini" }
+    new log_msg[999]
+    formatex(log_msg[0], charsmax(log_msg) - 0, "%L", LANG_PLAYER, (!file_exists(_pistols_File)) ? "FILE_NOT_LOADED" : "BROKEN_CONFIG")
+    replace(log_msg, 999, "$", "./.../nst_pistols.ini")
 
-    if (brokenConfig == 0) {
-        for (new i = 1; i < ArraySize(Pistol_Names); i++) {
-            new v_model[252], p_model[252], w_model[252], sight_model[252]
-            formatex(v_model, charsmax(v_model), "models/%s", parseConfig(i, "v_model"))
-            formatex(p_model, charsmax(p_model), "models/%s", parseConfig(i, "p_model"))
-            formatex(w_model, charsmax(w_model), "models/%s", parseConfig(i, "w_model"))
-
-            precache_model(v_model)
-            precache_model(p_model)
-            precache_model(w_model)
-
-            if (equali(parseConfig(i, "secondary_type"), "3")) {
-                formatex(sight_model, charsmax(sight_model), "models/%s", parseConfig(i, "sight_model"))
-                precache_model(sight_model)
-            }
-        }
-
-        for (new i = 1; i < ArraySize(Pistol_Names); i++) {
-            new total_sound[252]
-            new fs_left[252], fs_right[252]
-
-            formatex(total_sound, charsmax(total_sound), "%s", parseConfig(i, "fire_sounds"))
-            strtok(total_sound, fs_left, 252, fs_right, 252, '*')
-            trim(fs_left)
-            trim(fs_right)
-
-            if (equali(fs_left, "") || equali(fs_right, "")) {
-                format(total_sound, 252, "weapons/%s", total_sound)
-
-                precache_sound(total_sound)
-            } else {
-                format(fs_left, 252, "weapons/%s", fs_left)
-                format(fs_right, 252, "weapons/%s", fs_right)
-
-                precache_sound(fs_left)
-                precache_sound(fs_right)
-            }
-        }
-
-
-        new model[64]
-        for (new wpnid = 0; wpnid < ArraySize(Pistol_Numbers); wpnid++) {
-            if (wpnid != 0) {
-                ArrayGetString(Pistol_Names, wpnid, model, charsmax(model))
-
-                trim(model)
-                replace(model, 64, " ", "_")
-                strtolower(model)
-
-                format(class_weapons[wpnid], 31, "nst_%s", model)
-
-                cvar_clip[wpnid] = str_to_num(parseConfig(wpnid, "clip"))
-                cvar_ammo[wpnid] = str_to_num(parseConfig(wpnid, "ammo"))
-                cvar_cost[wpnid] = str_to_num(parseConfig(wpnid, "cost"))
-                cvar_administrator[wpnid] = str_to_num(parseConfig(wpnid, "administrator"))
-                cvar_secondary_type[wpnid] = str_to_num(parseConfig(wpnid, "secondary_type"))
-                cvar_reload[wpnid] = str_to_num(parseConfig(wpnid, "reload"))
-                cvar_tracer_type[wpnid] = str_to_num(parseConfig(wpnid, "tracer_type"))
-                cvar_tracer_sprite[wpnid] = precache_model(parseConfig(wpnid, "tracer_sprite"))
-
-                format(cvar_tracer[wpnid], 63, "%s", parseConfig(wpnid, "tracer"))
-
-                cvar_deploy[wpnid] = str_to_float(parseConfig(wpnid, "deploy"))
-                cvar_knockback[wpnid] = str_to_float(parseConfig(wpnid, "knockback"))
-                cvar_recoil[wpnid] = str_to_float(parseConfig(wpnid, "recoil"))
-                cvar_dmgmultiplier[wpnid] = str_to_float(parseConfig(wpnid, "damage"))
-                cvar_speed[wpnid] = str_to_float(parseConfig(wpnid, "speed"))
-                cvar_fastrun[wpnid] = str_to_float(parseConfig(wpnid, "fastrun"))
-                cvar_sightrecoil[wpnid] = str_to_float(parseConfig(wpnid, "sight_recoil"))
-            }
-        }
-    }
+    server_print("[NST Weapons] %s", log_msg)
+    brokenConfig = 1
+    return;
 }
 
 public readConfigSections() {
@@ -242,22 +277,6 @@ public readConfigSections() {
         }
     }
     sectionNumber = 0
-}
-
-public checkConfig() {
-    new messageTex[999]
-    new _pistols_File[100] = { "addons/amxmodx/configs/nst_weapons/nst_pistols.ini" }
-
-    formatex(messageTex[0], charsmax(messageTex) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG")
-    if (file_exists(_pistols_File) == 1) {
-        if (configSyntax() == -1) {
-            replace(messageTex, 999, "$", "new Array: Pistol_InfoText;")
-            server_print("[NST Weapons] %s", messageTex)
-            brokenConfig = 1
-        } else {
-            brokenConfig = 0
-        }
-    }
 }
 
 public readConfig() {
@@ -802,7 +821,7 @@ public NST_Pistols(client) {
             }
         }
     } else {
-        checkConfig()
+        config_error_log()
     }
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
@@ -1037,6 +1056,7 @@ public Item_PostFrame_Pre(entity) {
         disableZoom[client] = 1
 
         if (clip_old >= clip_max) {
+            set_pdata_float(client, m_flNextAttack, 0.0, 5)
             set_pev(client, pev_button, btnInfo & ~IN_RELOAD)
 
             //STOP RELOAD ANIMATION
@@ -1281,6 +1301,10 @@ public OnPlayerTouchWeaponBox(entity, client) {
 }
 
 public fw_TraceAttack(entity, attacker, Float:flDamage, Float:fDir[3], ptr, iDamageType) {
+    if (brokenConfig != 0) {
+        return
+    }
+
     if (!is_user_alive(attacker)) {
         return
     }
@@ -1717,6 +1741,10 @@ public nst_bot_weapons(taskid) {
 }
 
 public remove_modded() { //Who say this is bad?
+    if (brokenConfig != 0) {
+        return PLUGIN_HANDLED
+    }
+
     new entity = -1
     for (new i = 0; i < ArraySize(Pistol_Numbers); i++) {
         while ((entity = find_ent_by_class(entity, class_weapons[i]))) {

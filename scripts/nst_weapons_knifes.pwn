@@ -79,81 +79,106 @@ public plugin_init() {
     RegisterHam(Ham_Weapon_SecondaryAttack, "weapon_knife", "Secondary_Attack_Post", 1)
 }
 
+public plugin_precache() {
+    plugin_startup()
+
+    if (brokenConfig != 0) {
+        return
+    }
+
+    for (new i = 1; i < ArraySize(Knife_Names); i++) {
+        new v_model[252], p_model[252], w_model[252]
+        formatex(v_model, charsmax(v_model), "models/%s", parseConfig(i, "v_model"))
+        formatex(p_model, charsmax(p_model), "models/%s", parseConfig(i, "p_model"))
+        formatex(w_model, charsmax(w_model), "models/%s", parseConfig(i, "w_model"))
+
+        precache_model(v_model)
+        precache_model(p_model)
+        precache_model(w_model)
+    }
+
+    for (new i = 1; i < ArraySize(Knife_Names); i++) {
+        new hitwall[252], deploy[252], stab[252]
+        new hit1[252], hit2[252], hit3[252], hit4[252]
+        new slash1[252], slash2[252]
+
+        formatex(hitwall, charsmax(hitwall), "weapons/%s", parseConfig(i, "sound_hitwall"))
+        formatex(deploy, charsmax(deploy), "weapons/%s", parseConfig(i, "sound_deploy"))
+        formatex(stab, charsmax(stab), "weapons/%s", parseConfig(i, "sound_stab"))
+        formatex(slash1, charsmax(slash1), "weapons/%s", parseConfig(i, "sound_slash1"))
+        formatex(slash2, charsmax(slash2), "weapons/%s", parseConfig(i, "sound_slash2"))
+        formatex(hit1, charsmax(hit1), "weapons/%s", parseConfig(i, "sound_hit1"))
+        formatex(hit2, charsmax(hit2), "weapons/%s", parseConfig(i, "sound_hit2"))
+        formatex(hit3, charsmax(hit3), "weapons/%s", parseConfig(i, "sound_hit3"))
+        formatex(hit4, charsmax(hit4), "weapons/%s", parseConfig(i, "sound_hit4"))
+
+        precache_sound(hitwall)
+        precache_sound(deploy)
+        precache_sound(stab)
+        precache_sound(hit1)
+        precache_sound(hit2)
+        precache_sound(hit3)
+        precache_sound(hit4)
+        precache_sound(slash1)
+        precache_sound(slash2)
+    }
+
+    new model[64]
+    for (new wpnid = 0; wpnid < ArraySize(Knifes_Number); wpnid++) {
+        if (wpnid != 0) {
+            ArrayGetString(Knife_Names, wpnid, model, charsmax(model))
+
+            trim(model)
+            replace(model, 64, " ", "_")
+            strtolower(model)
+
+            format(class_knifes[wpnid], 31, "nst_%s", model)
+
+            cvar_cost[wpnid] = str_to_num(parseConfig(wpnid, "cost"))
+            cvar_administrator[wpnid] = str_to_num(parseConfig(wpnid, "administrator"))
+
+            cvar_deploy[wpnid] = str_to_float(parseConfig(wpnid, "deploy"))
+            cvar_knockback[wpnid] = str_to_float(parseConfig(wpnid, "knockback"))
+            cvar_dmgmultiplier[wpnid] = str_to_float(parseConfig(wpnid, "damage"))
+            cvar_speed[wpnid] = str_to_float(parseConfig(wpnid, "speed"))
+            cvar_speed2[wpnid] = str_to_float(parseConfig(wpnid, "speed2"))
+            cvar_jumppower[wpnid] = str_to_float(parseConfig(wpnid, "jump_power"))
+            cvar_jumpgravity[wpnid] = str_to_float(parseConfig(wpnid, "jump_gravity"))
+            cvar_fastrun[wpnid] = str_to_float(parseConfig(wpnid, "fastrun"))
+        }
+    }
+}
+
 public plugin_startup() {
+    new _knifes_File[100] = { "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
+
+    if (!file_exists(_knifes_File)) {
+        new log_file[999]
+        formatex(log_file[0], charsmax(log_file) - 0, "%L", LANG_PLAYER, "FILE_NOT_LOADED")
+        replace(log_file, 999, "$", "./.../nst_knifes.ini")
+
+        server_print("[NST Weapons] %s", log_file)
+        brokenConfig = 1
+
+        return
+    }
+
     Knifes_Number = ArrayCreate(1)
     Knife_Names = ArrayCreate(64)
     Knife_InfoText = ArrayCreate(128)
 
     readConfig()
     readConfigSections()
-    checkConfig()
-}
 
-public plugin_precache() {
-    plugin_startup()
+    if (configSyntax() == -1) {
+        new log_file[999]
+        formatex(log_file[0], charsmax(log_file) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG")
+        replace(log_file, 999, "$", "./.../nst_knifes.ini")
 
-    if (brokenConfig == 0) {
-        for (new i = 1; i < ArraySize(Knife_Names); i++) {
-            new v_model[252], p_model[252], w_model[252]
-            formatex(v_model, charsmax(v_model), "models/%s", parseConfig(i, "v_model"))
-            formatex(p_model, charsmax(p_model), "models/%s", parseConfig(i, "p_model"))
-            formatex(w_model, charsmax(w_model), "models/%s", parseConfig(i, "w_model"))
+        server_print("[NST Weapons] %s", log_file)
+        brokenConfig = 1
 
-            precache_model(v_model)
-            precache_model(p_model)
-            precache_model(w_model)
-        }
-
-        for (new i = 1; i < ArraySize(Knife_Names); i++) {
-            new hitwall[252], deploy[252], stab[252]
-            new hit1[252], hit2[252], hit3[252], hit4[252]
-            new slash1[252], slash2[252]
-
-            formatex(hitwall, charsmax(hitwall), "weapons/%s", parseConfig(i, "sound_hitwall"))
-            formatex(deploy, charsmax(deploy), "weapons/%s", parseConfig(i, "sound_deploy"))
-            formatex(stab, charsmax(stab), "weapons/%s", parseConfig(i, "sound_stab"))
-            formatex(slash1, charsmax(slash1), "weapons/%s", parseConfig(i, "sound_slash1"))
-            formatex(slash2, charsmax(slash2), "weapons/%s", parseConfig(i, "sound_slash2"))
-            formatex(hit1, charsmax(hit1), "weapons/%s", parseConfig(i, "sound_hit1"))
-            formatex(hit2, charsmax(hit2), "weapons/%s", parseConfig(i, "sound_hit2"))
-            formatex(hit3, charsmax(hit3), "weapons/%s", parseConfig(i, "sound_hit3"))
-            formatex(hit4, charsmax(hit4), "weapons/%s", parseConfig(i, "sound_hit4"))
-
-            precache_sound(hitwall)
-            precache_sound(deploy)
-            precache_sound(stab)
-            precache_sound(hit1)
-            precache_sound(hit2)
-            precache_sound(hit3)
-            precache_sound(hit4)
-            precache_sound(slash1)
-            precache_sound(slash2)
-        }
-
-        new model[64]
-        for (new wpnid = 0; wpnid < ArraySize(Knifes_Number); wpnid++) {
-            if (wpnid != 0) {
-                ArrayGetString(Knife_Names, wpnid, model, charsmax(model))
-
-                trim(model)
-                replace(model, 64, " ", "_")
-                strtolower(model)
-
-                format(class_knifes[wpnid], 31, "nst_%s", model)
-
-                cvar_cost[wpnid] = str_to_num(parseConfig(wpnid, "cost"))
-                cvar_administrator[wpnid] = str_to_num(parseConfig(wpnid, "administrator"))
-
-                cvar_deploy[wpnid] = str_to_float(parseConfig(wpnid, "deploy"))
-                cvar_knockback[wpnid] = str_to_float(parseConfig(wpnid, "knockback"))
-                cvar_dmgmultiplier[wpnid] = str_to_float(parseConfig(wpnid, "damage"))
-                cvar_speed[wpnid] = str_to_float(parseConfig(wpnid, "speed"))
-                cvar_speed2[wpnid] = str_to_float(parseConfig(wpnid, "speed2"))
-                cvar_jumppower[wpnid] = str_to_float(parseConfig(wpnid, "jump_power"))
-                cvar_jumpgravity[wpnid] = str_to_float(parseConfig(wpnid, "jump_gravity"))
-                cvar_fastrun[wpnid] = str_to_float(parseConfig(wpnid, "fastrun"))
-            }
-        }
+        return;
     }
 }
 
@@ -185,20 +210,15 @@ public readConfigSections() {
     sectionNumber = 0
 }
 
-public checkConfig() {
-    new messageTex[999]
-    new configFile[100] = { "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
+public config_error_log() {
+    new _knifes_File[100] = { "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
+    new log_msg[999]
+    formatex(log_msg[0], charsmax(log_msg) - 0, "%L", LANG_PLAYER, (!file_exists(_knifes_File)) ? "FILE_NOT_LOADED" : "BROKEN_CONFIG")
+    replace(log_msg, 999, "$", "./.../nst_knifes.ini")
 
-    formatex(messageTex[0], charsmax(messageTex) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG")
-    if (file_exists(configFile) == 1) {
-        if (configSyntax() == -1) {
-            replace(messageTex, 999, "$", "new Array: Knife_InfoText;")
-            server_print("[NST Weapons] %s", messageTex)
-            brokenConfig = 1
-        } else {
-            brokenConfig = 0
-        }
-    }
+    server_print("[NST Weapons] %s", log_msg)
+    brokenConfig = 1
+    return;
 }
 
 public readConfig() {
@@ -554,7 +574,7 @@ public NST_Knife(client) {
             }
         }
     } else {
-        checkConfig()
+        config_error_log()
     }
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
@@ -728,6 +748,10 @@ public Weapon_Deploy_Post(entity) {
 }
 
 public fw_EmitSound(entity, channel, sound[], Float: volume, Float: attenuation, fFlags, pitch) {
+    if (brokenConfig != 0) {
+        return PLUGIN_HANDLED
+    }
+
     if (!is_user_alive(entity)) {
         return FMRES_IGNORED
     }
@@ -735,52 +759,58 @@ public fw_EmitSound(entity, channel, sound[], Float: volume, Float: attenuation,
     new CURRENT_WEAPON = HAS_WEAPON[entity]
     new wpn_id = get_user_weapon(entity, _, _)
 
-    if (wpn_id == CSW_KNIFE && HAS_WEAPON[entity]) {
-        if (equali(sound, "weapons/knife_hit1.wav")) {
-            emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit1"), volume, attenuation, fFlags, pitch)
-            return FMRES_SUPERCEDE
-        }
+    if (wpn_id != CSW_KNIFE || !HAS_WEAPON[entity]) {
+        return PLUGIN_HANDLED
+    }
 
-        if (equali(sound, "weapons/knife_hit2.wav")) {
-            emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit2"), volume, attenuation, fFlags, pitch)
-            return FMRES_SUPERCEDE
-        }
+    if (equali(sound, "weapons/knife_hit1.wav")) {
+        emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit1"), volume, attenuation, fFlags, pitch)
+        return FMRES_SUPERCEDE
+    }
 
-        if (equali(sound, "weapons/knife_hit3.wav")) {
-            emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit3"), volume, attenuation, fFlags, pitch)
-            return FMRES_SUPERCEDE
-        }
+    if (equali(sound, "weapons/knife_hit2.wav")) {
+        emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit2"), volume, attenuation, fFlags, pitch)
+        return FMRES_SUPERCEDE
+    }
 
-        if (equali(sound, "weapons/knife_hit4.wav")) {
-            emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit4"), volume, attenuation, fFlags, pitch)
-            return FMRES_SUPERCEDE
-        }
+    if (equali(sound, "weapons/knife_hit3.wav")) {
+        emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit3"), volume, attenuation, fFlags, pitch)
+        return FMRES_SUPERCEDE
+    }
 
-        if (equali(sound, "weapons/knife_hitwall1.wav")) {
-            emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hitwall"), volume, attenuation, fFlags, pitch)
-            return FMRES_SUPERCEDE
-        }
+    if (equali(sound, "weapons/knife_hit4.wav")) {
+        emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit4"), volume, attenuation, fFlags, pitch)
+        return FMRES_SUPERCEDE
+    }
 
-        if (equali(sound, "weapons/knife_slash1.wav")) {
-            emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_slash1"), volume, attenuation, fFlags, pitch)
-            return FMRES_SUPERCEDE
-        }
+    if (equali(sound, "weapons/knife_hitwall1.wav")) {
+        emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hitwall"), volume, attenuation, fFlags, pitch)
+        return FMRES_SUPERCEDE
+    }
 
-        if (equali(sound, "weapons/knife_slash2.wav")) {
-            emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_slash2"), volume, attenuation, fFlags, pitch)
-            return FMRES_SUPERCEDE
-        }
+    if (equali(sound, "weapons/knife_slash1.wav")) {
+        emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_slash1"), volume, attenuation, fFlags, pitch)
+        return FMRES_SUPERCEDE
+    }
 
-        if (equali(sound, "weapons/knife_stab.wav")) {
-            emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_stab"), volume, attenuation, fFlags, pitch)
-            return FMRES_SUPERCEDE
-        }
+    if (equali(sound, "weapons/knife_slash2.wav")) {
+        emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_slash2"), volume, attenuation, fFlags, pitch)
+        return FMRES_SUPERCEDE
+    }
+
+    if (equali(sound, "weapons/knife_stab.wav")) {
+        emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_stab"), volume, attenuation, fFlags, pitch)
+        return FMRES_SUPERCEDE
     }
 
     return FMRES_IGNORED
 }
 
 public fw_PlayerPreThink(client) {
+    if (brokenConfig != 0) {
+        return PLUGIN_HANDLED
+    }
+
     if (!is_user_alive(client)) {
         return FMRES_IGNORED
     }
@@ -845,9 +875,11 @@ public fw_TakeDamage(victim, inflictor, attacker, Float: damage) {
     new CURRENT_WEAPON = HAS_WEAPON[attacker]
     new wpn_id = get_user_weapon(attacker)
 
-    if (wpn_id == CSW_KNIFE && HAS_WEAPON[attacker]) {
-        SetHamParamFloat(4, damage * cvar_dmgmultiplier[CURRENT_WEAPON])
+    if (wpn_id != CSW_KNIFE || !HAS_WEAPON[attacker]) {
+        return
     }
+
+    SetHamParamFloat(4, damage * cvar_dmgmultiplier[CURRENT_WEAPON])
 }
 
 public client_putinserver(client) {
