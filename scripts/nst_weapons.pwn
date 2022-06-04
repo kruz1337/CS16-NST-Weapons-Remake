@@ -10,10 +10,10 @@
 #include <regex>
 
 #define PLUGIN "NST Weapons"
-#define VERSION "1.2"
-#define AUTHOR "github.com/Kruziikrel1"
+#define VERSION "1.3"
+#define AUTHOR "github.com/kruz1337"
 
-new auto_buy_enabled = 0
+new auto_buy_enabled[33]
 
 public plugin_init() {
     register_plugin(PLUGIN, VERSION, AUTHOR)
@@ -26,7 +26,7 @@ public plugin_init() {
     register_cvar("nst_give_bot", "1")
     register_cvar("nst_zoom_spk", "1")
 
-    register_event("HLTV", "event_new_round", "a", "1=0", "2=0")
+    RegisterHam(Ham_Spawn, "player", "player_spawn", 1)
 
     BrokenConfig()
 }
@@ -91,12 +91,13 @@ public nstmenu_next(client, menu, item) {
         }
         case 4 :  {
             client_cmd(client, "nst_rifle_rebuy")
+            client_cmd(client, "nst_pistol_rebuy")
             client_cmd(client, "nst_knife_rebuy")
         }
         case 5 :  {
-            auto_buy_enabled = !auto_buy_enabled
+            auto_buy_enabled[client] = !auto_buy_enabled[client]
 
-            if (auto_buy_enabled == 0) {
+            if (!auto_buy_enabled[client]) {
                 client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "AUTO_BUY_DISABLED")
             } else {
                 client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "AUTO_BUY_ENABLED")
@@ -159,10 +160,10 @@ public nstmenu_primary_next(client, menu, item) {
             client_cmd(client, "nst_menu_type3")
         }
         case 2 :  {
-            client_cmd(client, "nst_menu_type5")
+            client_cmd(client, "nst_menu_type4")
         }
         case 3 :  {
-            client_cmd(client, "nst_menu_type4")
+            client_cmd(client, "nst_menu_type5")
         }
         case 4 :  {
             client_cmd(client, "nst_menu_type6")
@@ -182,8 +183,20 @@ public nstmenu_primary_next(client, menu, item) {
 
 public autobuy_previous_task(client) {
     client_cmd(client, "nst_rifle_rebuy")
+    client_cmd(client, "nst_pistol_rebuy")
     client_cmd(client, "nst_knife_rebuy")
-    remove_task(1881)
+}
+
+public player_spawn(client) {
+    if (!is_user_alive(client)) {
+        return
+    }
+
+    if (!auto_buy_enabled[client]) {
+        return
+    }
+
+    set_task(1.2, "autobuy_previous_task", client)
 }
 
 public BrokenConfig() {
@@ -207,14 +220,5 @@ public BrokenConfig() {
 
     if (hasErr == 1) {
         server_print("[NST Weapons] %s", messageTex)
-    }
-}
-
-public event_new_round() {
-    new client = read_data(2)
-
-    server_print("NEW_ROUND_STARTED")
-    if (auto_buy_enabled == 1) {
-        set_task(1.2, "autobuy_previous_task", client)
     }
 }

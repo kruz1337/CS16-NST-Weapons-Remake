@@ -2,21 +2,15 @@
 #include <amxmisc>
 #include <hamsandwich>
 #include <cstrike>
-#include <hlsdk_const>
-#include <fakemeta>
 #include <fun>
 #include <engine>
 #include <fakemeta_util>
-#include <regex>
 #include <string_stocks>
-#include <fakemeta>
-#include <fakemeta_stocks>
 
 #define PLUGIN "NST Knifes"
-#define VERSION "1.2"
-#define AUTHOR "github.com/Kruziikrel1"
+#define VERSION "1.3"
+#define AUTHOR "github.com/kruz1337"
 
-/* Other Variables */
 #if defined UL_COMPAT
 	#define get_user_money(%1) cs_get_user_money_ul(%1)
 	#define set_user_money(%1,%2) cs_set_user_money_ul(%1,%2)
@@ -34,21 +28,17 @@ const m_flNextPrimaryAttack = 46
 const m_flNextSecondaryAttack = 47
 const m_flTimeWeaponIdle = 48
 
-new Array: Knife_InfoText;
-new Array: Knife_Names;
-new Array: Knifes_Number;
-
 new brokenConfig = 0
 new commencing = 0
 
 const NEXT_SECTION = 24
 const MAX_WPN = 5000
-new CURRENT_WEAPON[33], HAS_WEAPON[33]
-new IN_BITVAR_JUMP
 
-new class_knifes[MAX_WPN][32]
-new cvar_cost[MAX_WPN]
-new cvar_administrator[MAX_WPN]
+new HAS_WEAPON[33], CURRENT_WEAPON[33]
+
+new Array: Knife_InfoText;
+new Array: Knife_Names;
+new Array: Knifes_Number;
 
 new Float:cvar_deploy[MAX_WPN]
 new Float:cvar_knockback[MAX_WPN]
@@ -60,6 +50,12 @@ new Float:cvar_jumpgravity[MAX_WPN]
 new Float:cvar_fastrun[MAX_WPN]
 
 new Float:round_time
+
+new class_knifes[MAX_WPN][32]
+new cvar_cost[MAX_WPN]
+new cvar_administrator[MAX_WPN]
+
+new IN_BITVAR_JUMP
 
 public plugin_init() {
     register_plugin(PLUGIN, VERSION, AUTHOR)
@@ -501,33 +497,35 @@ stock create_velocity_vector(victim, attacker, Float: velocity[3], Float: knockb
     return 1;
 }
 
-stock set_weapon_timeidle(id, Float: TimeIdle) {
-    if (!is_user_alive(id)) {
+stock set_weapon_timeidle(client, Float: TimeIdle) {
+    if (!is_user_alive(client)) {
         return
     }
 
-    static entwpn;
-    entwpn = fm_get_user_weapon_entity(id, CSW_KNIFE)
+    static entity;
+    entity = fm_get_user_weapon_entity(client, CSW_KNIFE)
 
-    if (!pev_valid(entwpn)) {
+    if (!pev_valid(entity)) {
         return
     }
 
-    set_pdata_float(entwpn, m_flNextPrimaryAttack, TimeIdle, 4)
-    set_pdata_float(entwpn, m_flNextSecondaryAttack, TimeIdle, 4)
-    set_pdata_float(entwpn, m_flTimeWeaponIdle, TimeIdle + 1.0, 4)
+    set_pdata_float(entity, m_flNextPrimaryAttack, TimeIdle, 4)
+    set_pdata_float(entity, m_flNextSecondaryAttack, TimeIdle, 4)
+    set_pdata_float(entity, m_flTimeWeaponIdle, TimeIdle + 1.0, 4)
 }
 
-stock set_player_nextattack(id, Float: nexttime) {
-    if (!is_user_alive(id))
+stock set_player_nextattack(client, Float: nexttime) {
+    if (!is_user_alive(client)) {
         return
+    }
 
-    set_pdata_float(id, 83, nexttime, 5)
+    set_pdata_float(client, 83, nexttime, 5)
 }
 
 stock format_knife_sound(wpn_id, const config_sound[]) {
     new formatted_sound[512]
     formatex(formatted_sound, charsmax(formatted_sound), "weapons/%s", parseConfig(wpn_id, config_sound))
+
     return formatted_sound
 }
 
@@ -586,53 +584,55 @@ public Get_NSTMelee(client, menu, item) {
     }
 }
 
-public Buy_Weapon(id, wpnid) {
+public Buy_Weapon(client, wpnid) {
     if (brokenConfig != 0) {
         return
     }
 
-    new buyzone = cs_get_user_buyzone(id)
+    new buyzone = cs_get_user_buyzone(client)
 
     if ((get_cvar_num("nst_use_buyzone") ? buyzone : 1) == 0) {
-        client_print(id, print_chat, "[NST Wpn] %L", LANG_PLAYER, "CANT_BUY_WEAPON")
+        client_print(client, print_chat, "[NST Wpn] %L", LANG_PLAYER, "CANT_BUY_WEAPON")
     } else {
-        new user_money = get_user_money(id)
+        new user_money = get_user_money(client)
         new wp_cost = cvar_cost[wpnid]
         new administrator = cvar_administrator[wpnid]
 
-        if (!(get_user_flags(id) & ADMIN_KICK) && administrator == 1) {
-            client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ACCESS_DENIED_BUY")
-        } else if (!is_user_alive(id)) {
-            client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "NOT_LIVE")
+        if (!(get_user_flags(client) & ADMIN_KICK) && administrator == 1) {
+            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ACCESS_DENIED_BUY")
+        } else if (!is_user_alive(client)) {
+            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "NOT_LIVE")
         } else if (get_gametime() - round_time > get_cvar_num("nst_buy_time")) {
-            engclient_print(id, engprint_center, "%L", LANG_PLAYER, "BUY_TIME_END", get_cvar_num("nst_buy_time"));
-        } else if (HAS_WEAPON[id] == wpnid) {
+            engclient_print(client, engprint_center, "%L", LANG_PLAYER, "BUY_TIME_END", get_cvar_num("nst_buy_time"));
+        } else if (HAS_WEAPON[client] == wpnid) {
             new temp[256]
-            ArrayGetString(Knife_Names, HAS_WEAPON[id], temp, charsmax(temp))
+            ArrayGetString(Knife_Names, HAS_WEAPON[client], temp, charsmax(temp))
 
-            client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", temp)
-        } else if (get_cvar_num("nst_free") ? 1 : wp_cost <= get_user_money(id)) {
-            CURRENT_WEAPON[id] = wpnid
-            HAS_WEAPON[id] = wpnid
-            Current_Weapon(id)
+            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", temp)
+        } else if (get_cvar_num("nst_free") ? true : (wp_cost <= get_user_money(client))) {
+            CURRENT_WEAPON[client] = wpnid
+            HAS_WEAPON[client] = wpnid
+            Current_Weapon(client)
+
+            client_cmd(0, "spk sound/items/gunpickup2.wav")
 
             if (get_cvar_num("nst_free") == 0) {
-                set_user_money(id, user_money + -wp_cost)
+                set_user_money(client, user_money + -wp_cost)
             }
         } else {
-            client_print(id, print_chat, "[NST Weapons] %L", LANG_PLAYER, "INSUFFICIENT_MONEY")
+            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "INSUFFICIENT_MONEY")
         }
     }
 }
 
-public ReBuy_Knife(id) {
+public ReBuy_Knife(client) {
     if (brokenConfig != 0) {
         return PLUGIN_HANDLED
     }
 
-    new wpnid = CURRENT_WEAPON[id]
+    new wpnid = CURRENT_WEAPON[client]
     if (wpnid > 0) {
-        Buy_Weapon(id, wpnid)
+        Buy_Weapon(client, wpnid)
     }
 
     return PLUGIN_HANDLED
@@ -705,21 +705,23 @@ public Weapon_Deploy_Post(entity) {
         return PLUGIN_HANDLED
     }
 
-    new id = get_pdata_cbase(entity, m_pPlayer, 4);
-    new CURRENT_WEAPON = HAS_WEAPON[id]
+    static client
+    client = get_pdata_cbase(entity, m_pPlayer, 4);
+
+    new CURRENT_WEAPON = HAS_WEAPON[client]
 
     if (!pev_valid(entity)) {
         return HAM_IGNORED;
     }
 
-    if (!is_user_alive(id)) {
+    if (!is_user_alive(client)) {
         return HAM_IGNORED;
     }
 
-    if (HAS_WEAPON[id]) {
-        emit_sound(id, CHAN_WEAPON, format_knife_sound(CURRENT_WEAPON, "sound_deploy"), VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
-        set_weapon_timeidle(id, cvar_deploy[CURRENT_WEAPON])
-        set_player_nextattack(id, cvar_deploy[CURRENT_WEAPON])
+    if (HAS_WEAPON[client]) {
+        emit_sound(client, CHAN_WEAPON, format_knife_sound(CURRENT_WEAPON, "sound_deploy"), VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+        set_weapon_timeidle(client, cvar_deploy[CURRENT_WEAPON])
+        set_player_nextattack(client, cvar_deploy[CURRENT_WEAPON])
     }
 
     return HAM_IGNORED
@@ -839,21 +841,22 @@ public fw_TakeDamage(victim, inflictor, attacker, Float: damage) {
     if (!is_valid_ent(attacker)) {
         return
     }
-    new CURRENT_WEAPON = HAS_WEAPON[attacker]
-    new weapon = get_user_weapon(attacker)
 
-    if (weapon == CSW_KNIFE && HAS_WEAPON[attacker]) {
+    new CURRENT_WEAPON = HAS_WEAPON[attacker]
+    new wpn_id = get_user_weapon(attacker)
+
+    if (wpn_id == CSW_KNIFE && HAS_WEAPON[attacker]) {
         SetHamParamFloat(4, damage * cvar_dmgmultiplier[CURRENT_WEAPON])
     }
 }
 
-public client_putinserver(id) {
+public client_putinserver(client) {
     if (brokenConfig != 0) {
         return
     }
 
-    if (is_user_bot(id)) {
-        set_task(0.1, "Do_RegisterHam_Bot", id)
+    if (is_user_bot(client)) {
+        set_task(0.1, "Do_RegisterHam_Bot", client)
     }
 }
 
@@ -874,16 +877,18 @@ public event_damage(client) {
     if (brokenConfig != 0) {
         return PLUGIN_CONTINUE
     }
+
     if (!is_valid_ent(client)) {
         return PLUGIN_CONTINUE
     }
-    new weapon, attacker = get_user_attacker(client, weapon)
 
-    new CURRENT_WEAPON = HAS_WEAPON[attacker]
+    new weapon, attacker = get_user_attacker(client, weapon)
 
     if (!is_user_alive(attacker)) {
         return PLUGIN_CONTINUE
     }
+
+    new CURRENT_WEAPON = HAS_WEAPON[attacker]
 
     if (weapon == CSW_KNIFE && HAS_WEAPON[attacker]) {
         new Float: vector[3]
@@ -917,14 +922,14 @@ public event_new_round() {
     round_time = get_gametime()
 }
 
-public Do_RegisterHam_Bot(id) {
+public Do_RegisterHam_Bot(client) {
     if (brokenConfig != 0) {
         return
     }
 
-    if (!is_valid_ent(id)) {
+    if (!is_valid_ent(client)) {
         return
     }
 
-    RegisterHamFromEntity(Ham_TakeDamage, id, "fw_TakeDamage")
+    RegisterHamFromEntity(Ham_TakeDamage, client, "fw_TakeDamage")
 }
