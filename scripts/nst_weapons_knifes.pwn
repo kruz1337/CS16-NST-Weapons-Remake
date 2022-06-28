@@ -8,7 +8,7 @@
 #include <string_stocks>
 
 #define PLUGIN "NST Knifes"
-#define VERSION "1.3"
+#define VERSION "1.4"
 #define AUTHOR "github.com/kruz1337"
 
 #if defined UL_COMPAT
@@ -837,15 +837,21 @@ public fw_PlayerPreThink(client) {
                 return FMRES_IGNORED
             }
 
-            new Float:fVelocity[3]
-            pev(client, pev_velocity, fVelocity)
+            if (cvar_jumppower[CURRENT_WEAPON])
+            {
+                new Float:fVelocity[3]
+                pev(client, pev_velocity, fVelocity)
 
-            fVelocity[2] += cvar_jumppower[CURRENT_WEAPON]
+                fVelocity[2] += cvar_jumppower[CURRENT_WEAPON]
+                set_pev(client, pev_velocity, fVelocity)
+                set_pev(client, pev_gaitsequence, 6)
+            }
 
-            set_pev(client, pev_velocity, fVelocity)
-            set_pev(client, pev_gaitsequence, 6)
-            set_user_gravity(client, cvar_jumpgravity[CURRENT_WEAPON])
-            Set_BitVar(IN_BITVAR_JUMP, client)
+            if (cvar_jumpgravity[CURRENT_WEAPON])
+            {    
+                set_user_gravity(client, cvar_jumpgravity[CURRENT_WEAPON])
+                Set_BitVar(IN_BITVAR_JUMP, client)
+            }
         }
     }
 
