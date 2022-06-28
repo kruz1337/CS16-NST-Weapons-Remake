@@ -10,7 +10,7 @@
 #include <regex>
 
 #define PLUGIN "NST Weapons"
-#define VERSION "1.3"
+#define VERSION "1.4"
 #define AUTHOR "github.com/kruz1337"
 
 new auto_buy_enabled[33]

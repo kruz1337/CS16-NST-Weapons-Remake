@@ -8,7 +8,7 @@
 #include <string_stocks>
 
 #define PLUGIN "NST Primary Weapons"
-#define VERSION "1.3"
+#define VERSION "1.4"
 #define AUTHOR "github.com/kruz1337"
 
 #if defined UL_COMPAT
@@ -232,6 +232,7 @@ public plugin_startup() {
         return
     }
 
+
     Rifles_Number = ArrayCreate(1)
     Rifle_Names = ArrayCreate(64)
     Rifle_InfoText = ArrayCreate(128)
@@ -249,6 +250,7 @@ public plugin_startup() {
 
         return;
     }
+
 }
 
 /* Config Functions */
@@ -280,7 +282,7 @@ public readConfigSections() {
         replace(temp, 999, "^n", "")
         ArrayPushString(Rifle_Names, temp)
         ArrayPushCell(Rifles_Number, sectionNumber)
-
+        
         if (ArraySize(Rifle_InfoText) > sectionNumber + NEXT_SECTION) {
             sectionNumber = sectionNumber + NEXT_SECTION
         } else {
@@ -322,7 +324,7 @@ public readConfig() {
     fclose(fp_rifles)
 }
 
-stock parseConfig(const strKey, const Property[]) {
+stock parseConfig(const strKey, const Property[]) {    
     const administrator = 1
     const cost = 2
     const wpn_id = 3
@@ -435,6 +437,7 @@ stock configSyntax() {
                 return -1;
             }
         }
+
         formatex(temp, charsmax(temp), "%s", parseConfig(i, "cost"))
 
         if (!isdigit(temp[0])) {
@@ -1285,6 +1288,10 @@ public Current_Weapon(client) {
 
         set_pev(client, pev_weaponmodel2, p_model)
     }
+    else
+    {
+        inZoom2[client] = 0
+    }
 
     if (SAVE_CLIP[client] == 0) {
         if (is_valid_ent(get_weapon_ent(client, CHANGE_WEAPON))) {
@@ -1615,14 +1622,11 @@ public fw_CmdStart(client, uc_handle, seed) {
         cs_set_user_zoom(client, CS_SET_NO_ZOOM, 1)
         ResetFov(client)
 
-        new v_model[999]
-        formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
-        set_pev(client, pev_viewmodel2, v_model)
-
         inZoom[client] = 0
         inZoom2[client] = 0
     } else if ((currentBtn & IN_ATTACK2) && !(oldButton & IN_ATTACK2) && !disableZoom[client]) {
-        if (cvar_zoom_type[CURRENT_WEAPON] == 1) {
+        if (cvar_zoom_type[CURRENT_WEAPON] == 1) 
+        {
             set_weapon_timeidle(client, 0.3)
             set_pdata_float(client, m_flNextAttack, 0.3, 5)
             set_player_nextattack(client, 0.66)
@@ -1638,7 +1642,8 @@ public fw_CmdStart(client, uc_handle, seed) {
                     client_cmd(0, "spk weapons/zoom.wav")
                 }
             }
-        } else if (cvar_zoom_type[CURRENT_WEAPON] == 2) {
+        }
+        else if (cvar_zoom_type[CURRENT_WEAPON] == 2) {
             set_weapon_timeidle(client, 0.3)
             set_pdata_float(client, m_flNextAttack, 0.3, 5)
             set_player_nextattack(client, 0.66)
@@ -1658,7 +1663,8 @@ public fw_CmdStart(client, uc_handle, seed) {
                     client_cmd(0, "spk weapons/zoom.wav")
                 }
             }
-        } else if (cvar_zoom_type[CURRENT_WEAPON] == 3) {
+        } 
+        else if (cvar_zoom_type[CURRENT_WEAPON] == 3) {
             set_weapon_timeidle(client, 0.3)
             set_pdata_float(client, m_flNextAttack, 0.3, 5)
             set_player_nextattack(client, 0.66)
@@ -1674,17 +1680,14 @@ public fw_CmdStart(client, uc_handle, seed) {
                 if (get_cvar_num("nst_zoom_spk")) {
                     client_cmd(0, "spk weapons/zoom.wav")
                 }
-            }
-        } else if (cvar_zoom_type[CURRENT_WEAPON] == 4) {
-            inZoom2[client] = 0
-
-            new v_model[999]
-            formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
-            set_pev(client, pev_viewmodel2, v_model)
-            ResetFov(client)
-
-            if (get_cvar_num("nst_zoom_spk")) {
-                client_cmd(0, "spk weapons/zoom.wav")
+            } 
+            else 
+            {
+                inZoom2[client] = 0
+                ResetFov(client)
+                if (get_cvar_num("nst_zoom_spk")) {
+                    client_cmd(0, "spk weapons/zoom.wav")
+                }
             }
         }
     }

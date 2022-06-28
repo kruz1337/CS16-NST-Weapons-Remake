@@ -8,7 +8,7 @@
 #include <string_stocks>
 
 #define PLUGIN "NST Secondary Weapons"
-#define VERSION "1.3"
+#define VERSION "1.4"
 #define AUTHOR "github.com/kruz1337"
 
 #if defined UL_COMPAT
@@ -1244,6 +1244,10 @@ public Current_Weapon(client) {
 
         set_pev(client, pev_weaponmodel2, p_model)
     }
+    else
+    {
+        inZoom2[client] = 0
+    }
 
     if (SAVE_CLIP[client] == 0) {
         if (is_valid_ent(get_weapon_ent(client, CHANGE_WEAPON))) {
@@ -1569,9 +1573,6 @@ public fw_CmdStart(client, uc_handle, seed) {
                 } else {
                     inZoom2[client] = 0
 
-                    new v_model[999]
-                    formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
-                    set_pev(client, pev_viewmodel2, v_model)
                     ResetFov(client)
 
                     if (get_cvar_num("nst_zoom_spk")) {
