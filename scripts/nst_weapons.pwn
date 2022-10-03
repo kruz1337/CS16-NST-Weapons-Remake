@@ -10,7 +10,7 @@
 #include <regex>
 
 #define PLUGIN "NST Weapons"
-#define VERSION "1.4"
+#define VERSION "1.5"
 #define AUTHOR "github.com/kruz1337"
 
 new auto_buy_enabled[33]
@@ -52,7 +52,10 @@ public nstmenu(client) {
     formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_ITEM5")
     menu_additem(menuxx, menu, "5")
 
+    new enabled_disabled[64]
     formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_ITEM6")
+    formatex(enabled_disabled, charsmax(enabled_disabled), "\r[%L]", LANG_PLAYER, auto_buy_enabled[client] ? "ITEM_ENABLED" : "ITEM_DISABLED")
+    replace(menu, 64, "$", enabled_disabled)
     menu_additem(menuxx, menu, "6")
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
