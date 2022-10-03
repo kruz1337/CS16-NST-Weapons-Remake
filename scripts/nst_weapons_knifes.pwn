@@ -8,16 +8,8 @@
 #include <string_stocks>
 
 #define PLUGIN "NST Knifes"
-#define VERSION "1.4"
+#define VERSION "1.5"
 #define AUTHOR "github.com/kruz1337"
-
-#if defined UL_COMPAT
-	#define get_user_money(%1) cs_get_user_money_ul(%1)
-	#define set_user_money(%1,%2) cs_set_user_money_ul(%1,%2)
-#else
-	#define set_user_money(%1,%2) cs_set_user_money(%1,%2)
-	#define get_user_money(%1) cs_get_user_money(%1)
-#endif
 
 #define Get_BitVar(%1,%2) (%1 & (1 << (%2 & 31)))
 #define Set_BitVar(%1,%2) %1 |= (1 << (%2 & 31))
@@ -31,14 +23,17 @@ const m_flTimeWeaponIdle = 48
 new brokenConfig = 0
 new commencing = 0
 
-const NEXT_SECTION = 24
-const MAX_WPN = 5000
+const MAX_WPN = 40
+const MAX_PLAYER = 33
+const NEXT_SECTION = 25
 
-new HAS_WEAPON[33], CURRENT_WEAPON[33]
+new HAS_WEAPON[MAX_PLAYER], CURRENT_WEAPON[MAX_PLAYER]
 
 new Array: Knife_InfoText;
 new Array: Knife_Names;
 new Array: Knifes_Number;
+
+new Array: cvar_buycvar
 
 new Float:cvar_deploy[MAX_WPN]
 new Float:cvar_knockback[MAX_WPN]
@@ -51,7 +46,7 @@ new Float:cvar_fastrun[MAX_WPN]
 
 new Float:round_time
 
-new class_knifes[MAX_WPN][32]
+new class_knifes[MAX_WPN][64]
 new cvar_cost[MAX_WPN]
 new cvar_administrator[MAX_WPN]
 
@@ -63,11 +58,13 @@ public plugin_init() {
     register_concmd("nst_knife_rebuy", "ReBuy_Knife")
     register_clcmd("nst_menu_type7", "NST_Knife")
 
+    register_clcmd("nst_knife_buy", "NST_Buy_Convar")
+
     register_event("HLTV", "event_new_round", "a", "1=0", "2=0");
     register_event("HLTV", "event_start_freezetime", "a", "1=0", "2=0")
     register_event("CurWeapon", "Current_Weapon", "be", "1=1")
     register_event("Damage", "event_damage", "b", "2>0")
-    register_event("DeathMsg", "event_death", "a", "1>0")
+    register_event("DeathMsg", "event_death", "a")
     register_event("TextMsg", "event_commencing", "a", "2=#event_commencing", "2=#Game_will_restart_in")
 
     register_forward(FM_EmitSound, "fw_EmitSound")
@@ -87,7 +84,7 @@ public plugin_precache() {
     }
 
     for (new i = 1; i < ArraySize(Knife_Names); i++) {
-        new v_model[252], p_model[252], w_model[252]
+        new v_model[128], p_model[128], w_model[128]
         formatex(v_model, charsmax(v_model), "models/%s", parseConfig(i, "v_model"))
         formatex(p_model, charsmax(p_model), "models/%s", parseConfig(i, "p_model"))
         formatex(w_model, charsmax(w_model), "models/%s", parseConfig(i, "w_model"))
@@ -98,9 +95,9 @@ public plugin_precache() {
     }
 
     for (new i = 1; i < ArraySize(Knife_Names); i++) {
-        new hitwall[252], deploy[252], stab[252]
-        new hit1[252], hit2[252], hit3[252], hit4[252]
-        new slash1[252], slash2[252]
+        new hitwall[128], deploy[128], stab[128]
+        new hit1[128], hit2[128], hit3[128], hit4[128]
+        new slash1[128], slash2[128]
 
         formatex(hitwall, charsmax(hitwall), "weapons/%s", parseConfig(i, "sound_hitwall"))
         formatex(deploy, charsmax(deploy), "weapons/%s", parseConfig(i, "sound_deploy"))
@@ -112,15 +109,33 @@ public plugin_precache() {
         formatex(hit3, charsmax(hit3), "weapons/%s", parseConfig(i, "sound_hit3"))
         formatex(hit4, charsmax(hit4), "weapons/%s", parseConfig(i, "sound_hit4"))
 
-        precache_sound(hitwall)
-        precache_sound(deploy)
-        precache_sound(stab)
-        precache_sound(hit1)
-        precache_sound(hit2)
-        precache_sound(hit3)
-        precache_sound(hit4)
-        precache_sound(slash1)
-        precache_sound(slash2)
+        if (strlen(parseConfig(i, "sound_hitwall"))) {
+            precache_sound(hitwall)
+        }
+        if (strlen(parseConfig(i, "sound_deploy"))) {
+            precache_sound(deploy)
+        }
+        if (strlen(parseConfig(i, "sound_stab"))) {
+            precache_sound(stab)
+        }
+        if (strlen(parseConfig(i, "sound_slash1"))) {
+            precache_sound(slash1)
+        }
+        if (strlen(parseConfig(i, "sound_slash2"))) {
+            precache_sound(slash2)
+        }
+        if (strlen(parseConfig(i, "sound_hit1"))) {
+            precache_sound(hit1)
+        }
+        if (strlen(parseConfig(i, "sound_hit2"))) {
+            precache_sound(hit2)
+        }
+        if (strlen(parseConfig(i, "sound_hit3"))) {
+            precache_sound(hit3)
+        }
+        if (strlen(parseConfig(i, "sound_hit4"))) {
+            precache_sound(hit4)
+        }
     }
 
     new model[64]
@@ -132,7 +147,9 @@ public plugin_precache() {
             replace(model, 64, " ", "_")
             strtolower(model)
 
-            format(class_knifes[wpnid], 31, "nst_%s", model)
+            format(class_knifes[wpnid], 63, "nst_%s", model)
+
+            ArrayPushString(cvar_buycvar, parseConfig(wpnid, "buycvar"))
 
             cvar_cost[wpnid] = str_to_num(parseConfig(wpnid, "cost"))
             cvar_administrator[wpnid] = str_to_num(parseConfig(wpnid, "administrator"))
@@ -150,12 +167,12 @@ public plugin_precache() {
 }
 
 public plugin_startup() {
-    new _knifes_File[100] = { "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
+    new _knifes_File[128] = { "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
 
     if (!file_exists(_knifes_File)) {
-        new log_file[999]
+        new log_file[256]
         formatex(log_file[0], charsmax(log_file) - 0, "%L", LANG_PLAYER, "FILE_NOT_LOADED")
-        replace(log_file, 999, "$", "./.../nst_knifes.ini")
+        replace(log_file, 255, "$", "./.../nst_knifes.ini")
 
         server_print("[NST Weapons] %s", log_file)
         brokenConfig = 1
@@ -163,17 +180,18 @@ public plugin_startup() {
         return
     }
 
-    Knifes_Number = ArrayCreate(1)
-    Knife_Names = ArrayCreate(64)
     Knife_InfoText = ArrayCreate(128)
+    Knifes_Number = ArrayCreate(16)
+    Knife_Names = ArrayCreate(64)
+    cvar_buycvar = ArrayCreate(64)
 
     readConfig()
     readConfigSections()
 
     if (configSyntax() == -1) {
-        new log_file[999]
+        new log_file[256]
         formatex(log_file[0], charsmax(log_file) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG")
-        replace(log_file, 999, "$", "./.../nst_knifes.ini")
+        replace(log_file, 255, "$", "./.../nst_knifes.ini")
 
         server_print("[NST Weapons] %s", log_file)
         brokenConfig = 1
@@ -182,11 +200,22 @@ public plugin_startup() {
     }
 }
 
+public config_error_log() {
+    new _knifes_File[64] = { "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
+    new log_msg[256]
+    formatex(log_msg[0], charsmax(log_msg) - 0, "%L", LANG_PLAYER, (!file_exists(_knifes_File)) ? "FILE_NOT_LOADED" : "BROKEN_CONFIG")
+    replace(log_msg, 255, "$", "./.../nst_knifes.ini")
+
+    server_print("[NST Weapons] %s", log_msg)
+    brokenConfig = 1
+    return;
+}
+
 public readConfigSections() {
     new sectionNumber = 0
-    new temp[64]
+    new temp[128]
 
-    for (new i = 0; i < ArraySize(Knife_InfoText); i++) {
+    for (new i = 0; i < ArraySize(Knife_InfoText) && i < MAX_WPN; i++) {
         if (i == 0) {
             ArrayPushString(Knife_Names, temp)
             ArrayPushCell(Knifes_Number, sectionNumber)
@@ -194,9 +223,9 @@ public readConfigSections() {
         }
 
         ArrayGetString(Knife_InfoText, sectionNumber, temp, charsmax(temp))
-        replace(temp, 999, "[", "")
-        replace(temp, 999, "]", "")
-        replace(temp, 999, "^n", "")
+        replace(temp, 127, "[", "")
+        replace(temp, 127, "]", "")
+        replace(temp, 127, "^n", "")
         ArrayPushString(Knife_Names, temp)
         ArrayPushCell(Knifes_Number, sectionNumber)
 
@@ -210,40 +239,29 @@ public readConfigSections() {
     sectionNumber = 0
 }
 
-public config_error_log() {
-    new _knifes_File[100] = { "addons/amxmodx/configs/nst_weapons/nst_knifes.ini" }
-    new log_msg[999]
-    formatex(log_msg[0], charsmax(log_msg) - 0, "%L", LANG_PLAYER, (!file_exists(_knifes_File)) ? "FILE_NOT_LOADED" : "BROKEN_CONFIG")
-    replace(log_msg, 999, "$", "./.../nst_knifes.ini")
-
-    server_print("[NST Weapons] %s", log_msg)
-    brokenConfig = 1
-    return;
-}
-
 public readConfig() {
-    new buffer[128]
-    new left_comment[128], right_comment[128], left_s_comment[128], right_s_comment[128]
+    new buffer[256]
+    new left_comment[256], right_comment[256], left_s_comment[256], right_s_comment[256]
 
     new fKnifes = fopen("addons/amxmodx/configs/nst_weapons/nst_knifes.ini", "r")
     while (!feof(fKnifes)) {
         fgets(fKnifes, buffer, charsmax(buffer))
 
         //Comment Line Remover
-        strtok(buffer, left_comment, 128, right_comment, 128, ';')
-        format(right_comment, 128, ";%s", right_comment)
-        str_replace(buffer, 128, right_comment, "_THIS_IS_COMMENT_LINE_")
+        strtok(buffer, left_comment, 255, right_comment, 255, ';')
+        format(right_comment, 255, ";%s", right_comment)
+        str_replace(buffer, 255, right_comment, "_THIS_IS_COMMENT_LINE_")
 
         //Comment Line Remover 2
-        strtok(buffer, left_s_comment, 128, right_s_comment, 128, ']')
+        strtok(buffer, left_s_comment, 255, right_s_comment, 255, ']')
         if (!equali(right_s_comment, "")) {
-            str_replace(buffer, 128, right_s_comment, "")
+            str_replace(buffer, 255, right_s_comment, "")
         }
 
         ArrayPushString(Knife_InfoText, buffer)
 
         for (new i = 0; i < ArraySize(Knife_InfoText); i++) {
-            new temp[128]
+            new temp[255]
             ArrayGetString(Knife_InfoText, i, temp, charsmax(temp))
             if (equali(temp, "_THIS_IS_COMMENT_LINE_")) {
                 ArrayDeleteItem(Knife_InfoText, i)
@@ -277,6 +295,7 @@ stock parseConfig(const strKey, const Property[]) {
     const v_model = 20
     const p_model = 21
     const w_model = 22
+    const buycvar = 23
 
     new parserLine[128]
     new rightValue[128], leftValue[32]
@@ -369,6 +388,10 @@ stock parseConfig(const strKey, const Property[]) {
 
     if (equali(Property, "w_model")) {
         PropertyNumber = w_model
+    }
+
+    if (equali(Property, "buycvar")) {
+        PropertyNumber = buycvar
     }
 
     ArrayGetString(Knife_InfoText, ArrayGetCell(Knifes_Number, strKey) + PropertyNumber, parserLine, charsmax(parserLine))
@@ -543,8 +566,10 @@ stock set_player_nextattack(client, Float: nexttime) {
 }
 
 stock format_knife_sound(wpn_id, const config_sound[]) {
-    new formatted_sound[512]
-    formatex(formatted_sound, charsmax(formatted_sound), "weapons/%s", parseConfig(wpn_id, config_sound))
+    new formatted_sound[64]
+    if (strlen(parseConfig(wpn_id, config_sound))) {
+        formatex(formatted_sound, charsmax(formatted_sound), "weapons/%s", parseConfig(wpn_id, config_sound))
+    }
 
     return formatted_sound
 }
@@ -604,6 +629,31 @@ public Get_NSTMelee(client, menu, item) {
     }
 }
 
+public NST_Buy_Convar(client) {
+    new msg[64]
+    if (read_argc() != 2) {
+        formatex(msg, charsmax(msg), "[NST Wpn] %L", LANG_PLAYER, "BUY_COMMAND_USAGE")
+        replace(msg, 64, "$", "nst_knife_buy")
+        client_print(client, print_console, msg)
+        return PLUGIN_HANDLED
+    }
+
+    new arg[64]
+    read_argv(1, arg, 63)
+    strtolower(arg)
+
+    for (new i = 0; i < ArraySize(cvar_buycvar); i++) {
+        new temp[128]
+        ArrayGetString(cvar_buycvar, i, temp, charsmax(temp))
+        if (equali(temp, arg) && (!equali(temp, "NULL") && !equali(temp, " "))) {
+            Buy_Weapon(client, i + 1)
+            break
+        }
+    }
+
+    return PLUGIN_HANDLED
+}
+
 public Buy_Weapon(client, wpnid) {
     if (brokenConfig != 0) {
         return
@@ -614,7 +664,7 @@ public Buy_Weapon(client, wpnid) {
     if ((get_cvar_num("nst_use_buyzone") ? buyzone : 1) == 0) {
         client_print(client, print_chat, "[NST Wpn] %L", LANG_PLAYER, "CANT_BUY_WEAPON")
     } else {
-        new user_money = get_user_money(client)
+        new user_money = cs_get_user_money(client)
         new wp_cost = cvar_cost[wpnid]
         new administrator = cvar_administrator[wpnid]
 
@@ -629,7 +679,7 @@ public Buy_Weapon(client, wpnid) {
             ArrayGetString(Knife_Names, HAS_WEAPON[client], temp, charsmax(temp))
 
             client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", temp)
-        } else if (get_cvar_num("nst_free") ? true : (wp_cost <= get_user_money(client))) {
+        } else if (get_cvar_num("nst_free") ? true : (wp_cost <= cs_get_user_money(client))) {
             CURRENT_WEAPON[client] = wpnid
             HAS_WEAPON[client] = wpnid
             Current_Weapon(client)
@@ -637,7 +687,7 @@ public Buy_Weapon(client, wpnid) {
             client_cmd(0, "spk sound/items/gunpickup2.wav")
 
             if (get_cvar_num("nst_free") == 0) {
-                set_user_money(client, user_money + -wp_cost)
+                cs_set_user_money(client, user_money + -wp_cost)
             }
         } else {
             client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "INSUFFICIENT_MONEY")
@@ -669,7 +719,7 @@ public Current_Weapon(client) {
     new wpn_id = get_user_weapon(client, clip, ammo)
 
     if (wpn_id == CSW_KNIFE && HAS_WEAPON[client]) {
-        new v_model[999], p_model[999]
+        new v_model[64], p_model[64]
         formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
         formatex(p_model, charsmax(p_model), "models/%s", parseConfig(CURRENT_WEAPON, "p_model"))
 
@@ -695,7 +745,9 @@ public Primary_Attack_Post(entity) {
     new wpn_id = get_user_weapon(client, _, _)
 
     if (wpn_id == CSW_KNIFE && HAS_WEAPON[client]) {
-        set_pdata_float(entity, m_flNextPrimaryAttack, cvar_speed[CURRENT_WEAPON], 4)
+        if (cvar_speed[CURRENT_WEAPON] != 0) {
+            set_pdata_float(entity, m_flNextPrimaryAttack, cvar_speed[CURRENT_WEAPON], 4)
+        }
     }
 
     return FMRES_SUPERCEDE
@@ -714,7 +766,9 @@ public Secondary_Attack_Post(entity) {
     new CURRENT_WEAPON = HAS_WEAPON[client]
 
     if (HAS_WEAPON[client]) {
-        set_pdata_float(entity, m_flNextSecondaryAttack, cvar_speed2[CURRENT_WEAPON], 4)
+        if (cvar_speed2[CURRENT_WEAPON] != 0) {
+            set_pdata_float(entity, m_flNextSecondaryAttack, cvar_speed2[CURRENT_WEAPON], 4)
+        }
     }
 
     return FMRES_SUPERCEDE
@@ -739,7 +793,9 @@ public Weapon_Deploy_Post(entity) {
     }
 
     if (HAS_WEAPON[client]) {
-        emit_sound(client, CHAN_WEAPON, format_knife_sound(CURRENT_WEAPON, "sound_deploy"), VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+        if (strlen(format_knife_sound(CURRENT_WEAPON, "sound_deploy"))) {
+            emit_sound(client, CHAN_WEAPON, format_knife_sound(CURRENT_WEAPON, "sound_deploy"), VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+        }
         set_weapon_timeidle(client, cvar_deploy[CURRENT_WEAPON])
         set_player_nextattack(client, cvar_deploy[CURRENT_WEAPON])
     }
@@ -763,42 +819,42 @@ public fw_EmitSound(entity, channel, sound[], Float: volume, Float: attenuation,
         return PLUGIN_HANDLED
     }
 
-    if (equali(sound, "weapons/knife_hit1.wav")) {
+    if (equali(sound, "weapons/knife_hit1.wav") && strlen(format_knife_sound(CURRENT_WEAPON, "sound_hit1"))) {
         emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit1"), volume, attenuation, fFlags, pitch)
         return FMRES_SUPERCEDE
     }
 
-    if (equali(sound, "weapons/knife_hit2.wav")) {
+    if (equali(sound, "weapons/knife_hit2.wav") && strlen(format_knife_sound(CURRENT_WEAPON, "sound_hit2"))) {
         emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit2"), volume, attenuation, fFlags, pitch)
         return FMRES_SUPERCEDE
     }
 
-    if (equali(sound, "weapons/knife_hit3.wav")) {
+    if (equali(sound, "weapons/knife_hit3.wav") && strlen(format_knife_sound(CURRENT_WEAPON, "sound_hit3"))) {
         emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit3"), volume, attenuation, fFlags, pitch)
         return FMRES_SUPERCEDE
     }
 
-    if (equali(sound, "weapons/knife_hit4.wav")) {
+    if (equali(sound, "weapons/knife_hit4.wav") && strlen(format_knife_sound(CURRENT_WEAPON, "sound_hit4"))) {
         emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hit4"), volume, attenuation, fFlags, pitch)
         return FMRES_SUPERCEDE
     }
 
-    if (equali(sound, "weapons/knife_hitwall1.wav")) {
+    if (equali(sound, "weapons/knife_hitwall1.wav") && strlen(format_knife_sound(CURRENT_WEAPON, "sound_hitwall"))) {
         emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_hitwall"), volume, attenuation, fFlags, pitch)
         return FMRES_SUPERCEDE
     }
 
-    if (equali(sound, "weapons/knife_slash1.wav")) {
+    if (equali(sound, "weapons/knife_slash1.wav") && strlen(format_knife_sound(CURRENT_WEAPON, "sound_slash1"))) {
         emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_slash1"), volume, attenuation, fFlags, pitch)
         return FMRES_SUPERCEDE
     }
 
-    if (equali(sound, "weapons/knife_slash2.wav")) {
+    if (equali(sound, "weapons/knife_slash2.wav") && strlen(format_knife_sound(CURRENT_WEAPON, "sound_slash2"))) {
         emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_slash2"), volume, attenuation, fFlags, pitch)
         return FMRES_SUPERCEDE
     }
 
-    if (equali(sound, "weapons/knife_stab.wav")) {
+    if (equali(sound, "weapons/knife_stab.wav") && strlen(format_knife_sound(CURRENT_WEAPON, "sound_stab"))) {
         emit_sound(entity, channel, format_knife_sound(CURRENT_WEAPON, "sound_stab"), volume, attenuation, fFlags, pitch)
         return FMRES_SUPERCEDE
     }
@@ -837,8 +893,7 @@ public fw_PlayerPreThink(client) {
                 return FMRES_IGNORED
             }
 
-            if (cvar_jumppower[CURRENT_WEAPON])
-            {
+            if (cvar_jumppower[CURRENT_WEAPON]) {
                 new Float:fVelocity[3]
                 pev(client, pev_velocity, fVelocity)
 
@@ -847,8 +902,7 @@ public fw_PlayerPreThink(client) {
                 set_pev(client, pev_gaitsequence, 6)
             }
 
-            if (cvar_jumpgravity[CURRENT_WEAPON])
-            {    
+            if (cvar_jumpgravity[CURRENT_WEAPON]) {
                 set_user_gravity(client, cvar_jumpgravity[CURRENT_WEAPON])
                 Set_BitVar(IN_BITVAR_JUMP, client)
             }
@@ -942,11 +996,10 @@ public event_damage(client) {
 }
 
 public event_death() {
-    new id = read_data(2)
+    new client = read_data(2)
 
-    if (HAS_WEAPON[id]) {
-        HAS_WEAPON[id] = 0
-        return PLUGIN_HANDLED
+    if (HAS_WEAPON[client]) {
+        HAS_WEAPON[client] = 0
     }
 
     return PLUGIN_CONTINUE
