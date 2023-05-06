@@ -80,8 +80,8 @@ cstrike
   #### Example Images:
   | Secondary type 1 | Secondary type 2 | Secondary Type 3 | Secondary Type 4 | Tracer type 1 | Tracer type 2 | Tracer type 3 |
   |------------------|------------------|------------------|------------------|---------------|---------------|---------------|
-  | ![https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/sectype1.gif](.gif)        | ![https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/sectype2.gif](.gif)        | ![https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/sectype3.gif](.gif)        | ![https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/sectype4.gif](.gif)        | ![https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/tracertype1.gif](.gif)     | ![https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/tracertype2.gif](.gif)     | ![https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/tracertype3.gif](.gif)     |
+  | ![https://github.com/kruz1337/CS16-NST-Weapons-Remake/blob/main/sectype1.gif](.gif)        | ![https://github.com/kruz1337/CS16-NST-Weapons-Remake/blob/main/sectype2.gif](.gif)        | ![https://github.com/kruz1337/CS16-NST-Weapons-Remake/blob/main/sectype3.gif](.gif)        | ![https://github.com/kruz1337/CS16-NST-Weapons-Remake/blob/main/sectype4.gif](.gif)        | ![https://github.com/kruz1337/CS16-NST-Weapons-Remake/blob/main/tracertype1.gif](.gif)     | ![https://github.com/kruz1337/CS16-NST-Weapons-Remake/blob/main/tracertype2.gif](.gif)     | ![https://github.com/kruz1337/CS16-NST-Weapons-Remake/blob/main/tracertype3.gif](.gif)     |
   
   | Reload 0    |
   |-------------|
-  | ![https://raw.githubusercontent.com/kruz1337/CS16-NST-Weapons-Remake/main/noreload.gif](.gif)   |
+  | ![https://github.com/kruz1337/CS16-NST-Weapons-Remake/blob/main/noreload.gif](.gif)   |
