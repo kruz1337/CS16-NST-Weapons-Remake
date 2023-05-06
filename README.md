@@ -34,11 +34,14 @@ cstrike
 
 ## What is NST Weapons Remake commands?
 * nst_menu: Opens NST Weapons Remake Menu.
-* nst_free <0/1>: If you set 1, all NST weapons are will be free.
-* nst_use_buyzone <0/1>: If you set 0, players can open NST Weapons Menu anywhere.
-* nst_buy_time <Second>: You set the NST Weapons buy time.
-* nst_give_bot <0/1>: If you set 1, all bots can buy NST Weapons.
-* nst_zoom_spk <0/1>: If you set 0, there will be no sound when NST weapon scope is opened.
+* nst_free "0/1": If you set 1, all NST weapons are will be free.
+* nst_use_buyzone "0/1": If you set 0, players can open NST Weapons Menu anywhere.
+* nst_buy_time "Second": You set the NST Weapons buy time.
+* nst_give_bot "0/1": If you set 1, all bots can buy NST Weapons.
+* nst_zoom_spk "0/1": If you set 0, there will be no sound when NST weapon scope is opened.
+* nst_primary_buy "NST Name": You buy the NST Primary Weapon.
+* nst_seconday_buy "NST Name": You buy the NST Secondary Weapon.
+* nst_melee_buy "NST Name": You buy the NST Melee Weapon.
 
 ## How to make NST Weapons Remake config?
 ### Syntax Rules:
