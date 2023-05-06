@@ -1,19 +1,13 @@
 #include <amxmodx>
-#include <amxmisc>
 #include <hamsandwich>
-#include <cstrike>
-#include <hlsdk_const>
-#include <fakemeta>
-#include <fun>
-#include <engine>
-#include <fakemeta_util>
-#include <regex>
 
 #define PLUGIN "NST Weapons"
-#define VERSION "1.5"
+#define VERSION "1.2.0"
 #define AUTHOR "github.com/kruz1337"
 
-new auto_buy_enabled[33]
+const MAX_PLAYER = 32
+
+new auto_buy_enabled[MAX_PLAYER]
 
 public plugin_init() {
     register_plugin(PLUGIN, VERSION, AUTHOR)
@@ -29,7 +23,6 @@ public plugin_init() {
     RegisterHam(Ham_Spawn, "player", "player_spawn", 1)
 }
 
-/* Default Menu */
 public nstmenu(client) {
     new menu[512], menuxx
     new text[256], len = 0
@@ -53,9 +46,8 @@ public nstmenu(client) {
     menu_additem(menuxx, menu, "5")
 
     new enabled_disabled[64]
-    formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_ITEM6")
     formatex(enabled_disabled, charsmax(enabled_disabled), "\r[%L]", LANG_PLAYER, auto_buy_enabled[client] ? "ITEM_ENABLED" : "ITEM_DISABLED")
-    replace(menu, 64, "$", enabled_disabled)
+    formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_ITEM6", enabled_disabled)
     menu_additem(menuxx, menu, "6")
 
     formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
@@ -91,9 +83,9 @@ public nstmenu_next(client, menu, item) {
 
         }
         case 4 :  {
-            client_cmd(client, "nst_rifle_rebuy")
-            client_cmd(client, "nst_pistol_rebuy")
-            client_cmd(client, "nst_knife_rebuy")
+            client_cmd(client, "nst_primary_rebuy")
+            client_cmd(client, "nst_secondary_rebuy")
+            client_cmd(client, "nst_melee_rebuy")
         }
         case 5 :  {
             auto_buy_enabled[client] = !auto_buy_enabled[client]
@@ -114,7 +106,6 @@ public nstmenu_next(client, menu, item) {
     return PLUGIN_HANDLED
 }
 
-/* Primary Menu */
 public nstwpn_primary(client) {
     new menu[512], menuxx
     new text[256], len = 0
@@ -183,9 +174,9 @@ public nstmenu_primary_next(client, menu, item) {
 }
 
 public autobuy_previous_task(client) {
-    client_cmd(client, "nst_rifle_rebuy")
-    client_cmd(client, "nst_pistol_rebuy")
-    client_cmd(client, "nst_knife_rebuy")
+    client_cmd(client, "nst_primary_rebuy")
+    client_cmd(client, "nst_secondary_rebuy")
+    client_cmd(client, "nst_melee_rebuy")
 }
 
 public player_spawn(client) {
