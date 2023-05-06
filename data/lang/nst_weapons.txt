@@ -5,7 +5,10 @@ MENU_ITEM2 = Secondary Weapons
 MENU_ITEM3 = Melee
 MENU_ITEM4 = Grenades
 MENU_ITEM5 = Rebuy Previous Weapons
-MENU_ITEM6 = Automatic Buy Weapons
+MENU_ITEM6 = Automatic Buy Weapons %s
+
+ITEM_ENABLED = Enabled
+ITEM_DISABLED = Disabled
 
 MENU2_ITEM1 = Shotguns
 MENU2_ITEM2 = Sub-machine
@@ -23,11 +26,12 @@ USER_IS_DEAD = You must be alive to use this command!
 
 AUTO_BUY_ENABLED = Automatic Buy Enabled!
 AUTO_BUY_DISABLED = Automatic Buy Disabled!
-FILE_NOT_LOADED = Config file is not found! (parameters="$")
-BROKEN_CONFIG = Failed to load config file! (parameters="$")
+FILE_NOT_LOADED = Config file is not found! (Path="%s")
+BROKEN_CONFIG = Config file has error in "%s" at line "%i"!
 INSUFFICIENT_MONEY = You don't have enough money for buy this weapon!
 NOT_LIVE = You can only buy while you're alive.
 CANT_BUY_WEAPON = You cannot buy Weapons in this location.
 ACCESS_DENIED_BUY = You dont have a permission for buy this weapon!
 ALREADY_HAVE = You already have %s
 BUY_TIME_END = Buy %i seconds have passed. ^nYou can't buy anything now!
+BUY_COMMAND_USAGE = Check command usage: %s <NST Name>

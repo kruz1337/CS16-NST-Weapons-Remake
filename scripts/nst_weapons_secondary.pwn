@@ -1,5 +1,4 @@
 #include <amxmodx>
-#include <amxmisc>
 #include <hamsandwich>
 #include <cstrike>
 #include <fun>
@@ -8,122 +7,110 @@
 #include <string_stocks>
 
 #define PLUGIN "NST Secondary Weapons"
-#define VERSION "1.5"
+#define VERSION "1.2.0"
 #define AUTHOR "github.com/kruz1337"
-
-#define Get_BitVar(%1,%2) (%1 & (1 << (%2 & 31)))
-#define Set_BitVar(%1,%2) %1 |= (1 << (%2 & 31))
-#define UnSet_BitVar(%1,%2) %1 &= ~(1 << (%2 & 31))
 
 const m_pPlayer = 41
 const m_iId = 43
 const m_flNextPrimaryAttack = 46
 const m_flNextSecondaryAttack = 47
 const m_flTimeWeaponIdle = 48
-const m_iPrimaryAmmoType = 49
+const m_iPrimaryammoType = 49
 const m_iClip = 51
 const m_fInReload = 54
 const m_flNextAttack = 83
 const m_iFOV = 363
-const m_rgAmmo_player_Slot0 = 376
+const m_rgPlayerAmmo_Slot0 = 376
+const m_rgpPlayerItems_Slot2 = 369
 const m_fWeaponState = 74
-
-new brokenConfig = 0
-new commencing = 0
+const m_iHideHUD = 361
 
 const MAX_WPN = 40
-const MAX_PLAYER = 33
-const NEXT_SECTION = 25
+const MAX_PLAYER = 32
+const NEXT_SECTION = 25 - 1
+const MAX_ARRAYSIZE = 64
 
 new HAS_WEAPON[MAX_PLAYER], CURRENT_WEAPON[MAX_PLAYER]
-new inZoom[MAX_PLAYER], inZoom2[MAX_PLAYER], disableZoom[MAX_PLAYER]
+new SAVED_CLIP[MAX_PLAYER]
+new IS_INIRONSIGHT[MAX_PLAYER], IS_INRELOAD[MAX_PLAYER]
+new Float: PUSHANGLE[MAX_PLAYER][3]
 
-enum( += 100) {
-    TASK_GIVEWPNBOT
-}
+new Array: Pistol_InfoText
+new Array: Pistol_Names
 
-new Array: Pistol_InfoText;
-new Array: Pistol_Names;
-new Array: Pistol_Numbers;
+new bool: IsConfigBroken = false
+new bool: IsInCommencing = false
+new Float: gameTime
 
-new Array: cvar_buycvar
+new Float: cvar_deploy[MAX_WPN + 1]
+new Float: cvar_dmgmultiplier[MAX_WPN + 1]
+new Float: cvar_speed[MAX_WPN + 1]
+new Float: cvar_recoil[MAX_WPN + 1]
+new Float: cvar_knockback[MAX_WPN + 1]
+new Float: cvar_fastrun[MAX_WPN + 1]
+new Float: cvar_sightrecoil[MAX_WPN + 1]
 
-new Float:cvar_deploy[MAX_WPN]
-new Float:cvar_dmgmultiplier[MAX_WPN]
-new Float:cvar_speed[MAX_WPN]
-new Float:cvar_recoil[MAX_WPN]
-new Float:cvar_knockback[MAX_WPN]
-new Float:cvar_fastrun[MAX_WPN]
-new Float:cvar_sightrecoil[MAX_WPN]
+new class_weapons[MAX_WPN + 1][MAX_ARRAYSIZE]
+new cvar_secondary_type[MAX_WPN + 1]
+new cvar_clip[MAX_WPN + 1]
+new cvar_ammo[MAX_WPN + 1]
+new cvar_cost[MAX_WPN + 1]
+new cvar_administrator[MAX_WPN + 1]
+new cvar_reload[MAX_WPN + 1]
+new cvar_tracer[MAX_WPN + 1][MAX_ARRAYSIZE]
+new cvar_tracer_type[MAX_WPN + 1]
+new cvar_tracer_sprite[MAX_WPN + 1]
+new cvar_buycvar[MAX_WPN + 1][MAX_ARRAYSIZE]
 
-new Float:pushangle[MAX_PLAYER][3]
-new Float:round_time
-
-new class_weapons[MAX_WPN][32]
-new cvar_secondary_type[MAX_WPN]
-new cvar_clip[MAX_WPN]
-new cvar_ammo[MAX_WPN]
-new cvar_cost[MAX_WPN]
-new cvar_administrator[MAX_WPN]
-new cvar_reload[MAX_WPN]
-new cvar_tracer[MAX_WPN][64]
-new cvar_tracer_type[MAX_WPN]
-new cvar_tracer_sprite[MAX_WPN]
-
-new SAVE_CLIP[MAX_WPN]
-new SAVED_CLIP[MAX_WPN]
-new IN_EMIT_ATTACK
-
-new const pistols[] = { 1, 10, 11, 16, 17, 26 }
-new const weapons_ammo_id[] = {-1, 9, -1, 2, 12, 5, 14, 6, 4, 13, 10, 7, 6, 4, 4, 4, 6, 10, 1, 10, 3, 5, 4, 10, 2, 11, 8, 4, 2, -1, 7 }
-new const weapons_max_bp_ammo[] = {-1, 52, -1, 90, -1, 32, -1, 100, 90, -1, 120, 100, 100, 90, 90, 90, 100, 120, 30, 120, 200, 32, 90, 120, 90, -1, 35, 90, 90, -1, 100 }
-new const weapons_old_world_models[] = { "models/w_fiveseven.mdl", "models/w_elite.mdl", "models/w_usp.mdl", "models/w_p228.mdl", "models/w_deagle.mdl", "models/w_glock18.mdl" }
-new const buy_AmmoCount[] = {-1, 13, -1, 30, -1, 8, -1, 12, 30, -1, 30, 50, 12, 30, 30, 30, 12, 30, 10, 30, 30, 8, 30, 30, 30, -1, 30, 30, 30, -1, 50 }
-new const buy_AmmoCost[] = {-1, 50, -1, 80, -1, 65, -1, 25, 60, -1, 20, 50, 25, 60, 60, 60, 25, 20, 125, 20, 60, 65, 60, 20, 80, -1, 80, 60, 80, -1, 50 }
-new const fire_animations[] = {-1, 2, -1, 2, -1, 2, -1, 4, 4, -1, -1, 1, 4, -1, 4, 4, -1, 4, 2, 4, 2, 2, -1, -1, -1, -1, 2, 4, 4, -1, 4 }
-
-stock const weapons_max_clip[] = {-1, 13, -1, 10, 1, 7, 1, 30, 30, 1, 30, 20, 25, 30, 35, 25, 12, 20, 10, 30, 100, 8, 30, 30, 20, 2, 7, 30, 30, -1, 50 }
-stock const Float:weapons_clip_delay[CSW_P90 + 1] = { 0.00, 2.70, 0.00, 2.00, 0.00, 0.55, 0.00, 3.15, 3.30, 0.00, 4.50, 2.70, 3.50, 3.35, 2.45, 3.30, 2.70, 2.20, 2.50, 2.63, 4.70, 0.55, 3.05, 2.12, 3.50, 0.00, 2.20, 3.00, 2.45, 0.00, 3.40 }
+new const secondaryWeaponsId[] = { 1, 10, 11, 16, 17, 26 }
+new const secondaryWeaponsWorld[] = { "models/w_fiveseven.mdl", "models/w_elite.mdl", "models/w_usp.mdl", "models/w_p228.mdl", "models/w_deagle.mdl", "models/w_glock18.mdl" }
+new const weaponsAmmoId[] = {-1, 9, -1, 2, 12, 5, 14, 6, 4, 13, 10, 7, 6, 4, 4, 4, 6, 10, 1, 10, 3, 5, 4, 10, 2, 11, 8, 4, 2, -1, 7 }
+new const weaponsMaxAmmo[] = {-1, 13, -1, 10, 1, 7, 1, 30, 30, 1, 30, 20, 25, 30, 35, 25, 12, 20, 10, 30, 100, 8, 30, 30, 20, 2, 7, 30, 30, -1, 50 }
+new const weaponsMaxBpAmmo[] = {-1, 52, -1, 90, -1, 32, -1, 100, 90, -1, 120, 100, 100, 90, 90, 90, 100, 120, 30, 120, 200, 32, 90, 120, 90, -1, 35, 90, 90, -1, 100 }
+new const weaponsAmmo[] = {-1, 13, -1, 30, -1, 8, -1, 12, 30, -1, 30, 50, 12, 30, 30, 30, 12, 30, 10, 30, 30, 8, 30, 30, 30, -1, 30, 30, 30, -1, 50 }
+new const weaponsAmmoCost[] = {-1, 50, -1, 80, -1, 65, -1, 25, 60, -1, 20, 50, 25, 60, 60, 60, 25, 20, 125, 20, 60, 65, 60, 20, 80, -1, 80, 60, 80, -1, 50 }
+new const Float: weaponsReloadDelay[] = { 0.00, 2.70, 0.00, 2.00, 0.00, 0.55, 0.00, 3.15, 3.30, 0.00, 4.50, 2.70, 3.50, 3.35, 2.45, 3.30, 2.70, 2.20, 2.50, 2.63, 4.70, 0.55, 3.05, 2.12, 3.50, 0.00, 2.20, 3.00, 2.45, 0.00, 3.40 }
 
 public plugin_init() {
     register_plugin(PLUGIN, VERSION, AUTHOR)
     register_dictionary("nst_weapons.txt")
-    register_concmd("nst_pistol_rebuy", "ReBuy_Weapon")
-    register_clcmd("nst_menu_type1", "NST_Pistols")
+    register_concmd("nst_secondary_rebuy", "ReBuy_Weapon")
+    register_clcmd("nst_menu_type1", "NST_Secondary")
 
-    register_clcmd("nst_pistol_buy", "NST_Buy_Convar")
+    register_clcmd("nst_secondary_buy", "NST_Buy_Convar")
 
-    register_event("HLTV", "event_new_round", "a", "1=0", "2=0");
-    register_event("HLTV", "event_start_freezetime", "a", "1=0", "2=0")
-    register_event("CurWeapon", "Current_Weapon", "be", "1=1")
-    register_event("Damage", "event_damage", "b", "2>0")
-    register_event("DeathMsg", "event_death", "a")
+    register_event("HLTV", "Event_NewRound", "a", "1=0", "2=0")
+    register_event("CurWeapon", "Event_CurrentWeapon", "be", "1=1")
+    register_event("Damage", "Event_Damage", "b", "2>0")
+    register_event("DeathMsg", "Event_Death", "a")
+    register_event("TextMsg", "Event_Commencing", "a", "2=#Game_Commencing", "2=#Game_End", "2=#Game_will_restart_in")
 
-    RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage")
-    RegisterHam(Ham_Spawn, "player", "fw_PlayerSpawn_Post", 1)
-    RegisterHam(Ham_Touch, "weaponbox", "OnPlayerTouchWeaponBox")
+    RegisterHam(Ham_TakeDamage, "player", "Ham_TakeDamage_Pre")
+    RegisterHam(Ham_TakeDamage, "bot", "Ham_TakeDamage_Pre")
+    RegisterHam(Ham_Spawn, "bot", "Ham_BotSpawn_Post")
+    RegisterHam(Ham_Touch, "weaponbox", "Ham_PlayerTouchWeaponBox")
+    RegisterHam(Ham_TraceAttack, "worldspawn", "Ham_TraceAttack_Post", 1)
+    RegisterHam(Ham_TraceAttack, "func_breakable", "Ham_TraceAttack_Post", 1)
+    RegisterHam(Ham_TraceAttack, "func_wall", "Ham_TraceAttack_Post", 1)
+    RegisterHam(Ham_TraceAttack, "func_door", "Ham_TraceAttack_Post", 1)
+    RegisterHam(Ham_TraceAttack, "func_door_rotating", "Ham_TraceAttack_Post", 1)
+    RegisterHam(Ham_TraceAttack, "func_plat", "Ham_TraceAttack_Post", 1)
+    RegisterHam(Ham_TraceAttack, "func_rotating", "Ham_TraceAttack_Post", 1)
 
-    RegisterHam(Ham_TraceAttack, "worldspawn", "fw_TraceAttack", 1)
-    RegisterHam(Ham_TraceAttack, "func_breakable", "fw_TraceAttack", 1)
-    RegisterHam(Ham_TraceAttack, "func_wall", "fw_TraceAttack", 1)
-    RegisterHam(Ham_TraceAttack, "func_door", "fw_TraceAttack", 1)
-    RegisterHam(Ham_TraceAttack, "func_door_rotating", "fw_TraceAttack", 1)
-    RegisterHam(Ham_TraceAttack, "func_plat", "fw_TraceAttack", 1)
-    RegisterHam(Ham_TraceAttack, "func_rotating", "fw_TraceAttack", 1)
-
+    register_forward(FM_UpdateClientData, "fw_UpdateClientData_Post", 1)
+    register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")
     register_forward(FM_SetModel, "fw_WorldModel")
     register_forward(FM_CmdStart, "fw_CmdStart")
 
-    register_clcmd("buyammo2", "ClientCommand_buyammo2")
-    register_clcmd("secammo", "ClientCommand_buyammo2")
+    register_clcmd("buyammo2", "Cmd_BuyAmmo2")
+    register_clcmd("secammo", "Cmd_BuyAmmo2")
 
-    register_event("TextMsg", "event_commencing", "a", "2=#event_commencing", "2=#Game_will_restart_in")
+    new weapon_name[64]
+    for (new i = 1; i < sizeof(secondaryWeaponsId); i++) {
+        get_weaponname(secondaryWeaponsId[i], weapon_name, charsmax(weapon_name))
 
-    new weapon_name[17]
-    for (new i = 1; i < sizeof(pistols); i++) {
-        get_weaponname(pistols[i], weapon_name, charsmax(weapon_name))
-
-        RegisterHam(Ham_Item_PostFrame, weapon_name, "Item_PostFrame_Pre")
+        RegisterHam(Ham_Weapon_Reload, weapon_name, "Pistols_Reload_Post", 1)
+        RegisterHam(Ham_Item_PostFrame, weapon_name, "Pistols_PostFrame_Pre")
         RegisterHam(Ham_Weapon_PrimaryAttack, weapon_name, "Primary_Attack")
         RegisterHam(Ham_Weapon_PrimaryAttack, weapon_name, "Primary_Attack_Post", 1)
         RegisterHam(Ham_Item_Deploy, weapon_name, "Weapon_Deploy_Post", 1)
@@ -133,192 +120,162 @@ public plugin_init() {
 public plugin_precache() {
     plugin_startup()
 
-    if (brokenConfig != 0) {
+    if (IsConfigBroken) {
         return
     }
 
-    for (new i = 1; i < ArraySize(Pistol_Names); i++) {
+    for (new wpnId = 1; wpnId < ArraySize(Pistol_Names); wpnId++) {
         new v_model[64], p_model[64], w_model[64], sight_model[64]
-        formatex(v_model, charsmax(v_model), "models/%s", parseConfig(i, "v_model"))
-        formatex(p_model, charsmax(p_model), "models/%s", parseConfig(i, "p_model"))
-        formatex(w_model, charsmax(w_model), "models/%s", parseConfig(i, "w_model"))
+        formatex(v_model, charsmax(v_model), "models/%s", ParseConfig(wpnId, "v_model"))
+        formatex(p_model, charsmax(p_model), "models/%s", ParseConfig(wpnId, "p_model"))
+        formatex(w_model, charsmax(w_model), "models/%s", ParseConfig(wpnId, "w_model"))
 
         precache_model(v_model)
         precache_model(p_model)
         precache_model(w_model)
 
-        if (equali(parseConfig(i, "secondary_type"), "3")) {
-            formatex(sight_model, charsmax(sight_model), "models/%s", parseConfig(i, "sight_model"))
+        if (equali(ParseConfig(wpnId, "secondary_type"), "3")) {
+            formatex(sight_model, charsmax(sight_model), "models/%s", ParseConfig(wpnId, "sight_model"))
             precache_model(sight_model)
         }
-    }
 
-    for (new i = 1; i < ArraySize(Pistol_Names); i++) {
-        new total_sound[256]
-        new fs_left[64], fs_right[64]
+        new sound[256]
+        new sound1[64], sound2[64]
 
-        formatex(total_sound, charsmax(total_sound), "%s", parseConfig(i, "fire_sounds"))
-        strtok(total_sound, fs_left, 63, fs_right, 63, '*')
-        trim(fs_left)
-        trim(fs_right)
+        formatex(sound, charsmax(sound), "%s", ParseConfig(wpnId, "fire_sounds"))
+        strtok(sound, sound1, charsmax(sound1), sound2, charsmax(sound2), '*')
+        trim(sound1)
+        trim(sound2)
 
-        if (equali(fs_left, "") || equali(fs_right, "")) {
-            format(total_sound, 255, "weapons/%s", total_sound)
-
-            precache_sound(total_sound)
+        if (contain(sound2, ".wav") == -1) {
+            format(sound, charsmax(sound), "weapons/%s", sound)
+            precache_sound(sound)
         } else {
-            format(fs_left, 63, "weapons/%s", fs_left)
-            format(fs_right, 63, "weapons/%s", fs_right)
-
-            precache_sound(fs_left)
-            precache_sound(fs_right)
+            format(sound1, charsmax(sound1), "weapons/%s", sound1)
+            format(sound2, charsmax(sound2), "weapons/%s", sound2)
+            precache_sound(sound1)
+            precache_sound(sound2)
         }
-    }
 
-    new model[64]
-    for (new wpnid = 0; wpnid < ArraySize(Pistol_Numbers); wpnid++) {
-        if (wpnid != 0) {
-            ArrayGetString(Pistol_Names, wpnid, model, charsmax(model))
+        new name[64]
+        ArrayGetString(Pistol_Names, wpnId, name, charsmax(name))
 
-            trim(model)
-            replace(model, 64, " ", "_")
-            strtolower(model)
+        replace_all(name, charsmax(name), "-", "")
+        replace_all(name, charsmax(name), "(", "")
+        replace_all(name, charsmax(name), ")", "")
+        replace_all(name, charsmax(name), " ", "")
+        trim(name)
+        strtolower(name)
 
-            format(class_weapons[wpnid], 31, "nst_%s", model)
+        format(class_weapons[wpnId], charsmax(name), "nst_%s", name)
 
-            ArrayPushString(cvar_buycvar, parseConfig(wpnid, "buycvar"))
-
-            cvar_clip[wpnid] = str_to_num(parseConfig(wpnid, "clip"))
-            cvar_ammo[wpnid] = str_to_num(parseConfig(wpnid, "ammo"))
-            cvar_cost[wpnid] = str_to_num(parseConfig(wpnid, "cost"))
-            cvar_administrator[wpnid] = str_to_num(parseConfig(wpnid, "administrator"))
-            cvar_secondary_type[wpnid] = str_to_num(parseConfig(wpnid, "secondary_type"))
-            cvar_reload[wpnid] = str_to_num(parseConfig(wpnid, "reload"))
-            cvar_tracer_type[wpnid] = str_to_num(parseConfig(wpnid, "tracer_type"))
-
-            if (!equali(parseConfig(wpnid, "tracer_type"), "0")) {
-                cvar_tracer_sprite[wpnid] = precache_model(parseConfig(wpnid, "tracer_sprite"))
-            }
-
-            if (strlen(parseConfig(wpnid, "tracer"))) {
-                format(cvar_tracer[wpnid], 63, "%s", parseConfig(wpnid, "tracer"))
-            }
-
-            cvar_deploy[wpnid] = str_to_float(parseConfig(wpnid, "deploy"))
-            cvar_knockback[wpnid] = str_to_float(parseConfig(wpnid, "knockback"))
-            cvar_recoil[wpnid] = str_to_float(parseConfig(wpnid, "recoil"))
-            cvar_dmgmultiplier[wpnid] = str_to_float(parseConfig(wpnid, "damage"))
-            cvar_speed[wpnid] = str_to_float(parseConfig(wpnid, "speed"))
-            cvar_fastrun[wpnid] = str_to_float(parseConfig(wpnid, "fastrun"))
-            cvar_sightrecoil[wpnid] = str_to_float(parseConfig(wpnid, "sight_recoil"))
+        if (strlen(ParseConfig(wpnId, "tracer"))) {
+            format(cvar_tracer[wpnId], MAX_ARRAYSIZE, "%s", ParseConfig(wpnId, "tracer"))
         }
+
+        format(cvar_buycvar[wpnId], MAX_ARRAYSIZE, "%s", ParseConfig(wpnId, "buycvar"))
+
+        cvar_clip[wpnId] = str_to_num(ParseConfig(wpnId, "clip"))
+        cvar_ammo[wpnId] = str_to_num(ParseConfig(wpnId, "ammo"))
+        cvar_cost[wpnId] = str_to_num(ParseConfig(wpnId, "cost"))
+        cvar_administrator[wpnId] = str_to_num(ParseConfig(wpnId, "administrator"))
+        cvar_secondary_type[wpnId] = str_to_num(ParseConfig(wpnId, "secondary_type"))
+        cvar_reload[wpnId] = str_to_num(ParseConfig(wpnId, "reload"))
+        cvar_tracer_type[wpnId] = str_to_num(ParseConfig(wpnId, "tracer_type"))
+        cvar_tracer_sprite[wpnId] = cvar_tracer_type[wpnId] == 0 ? 0 : precache_model(ParseConfig(wpnId, "tracer_sprite"))
+        cvar_deploy[wpnId] = str_to_float(ParseConfig(wpnId, "deploy"))
+        cvar_knockback[wpnId] = str_to_float(ParseConfig(wpnId, "knockback"))
+        cvar_recoil[wpnId] = str_to_float(ParseConfig(wpnId, "recoil"))
+        cvar_dmgmultiplier[wpnId] = str_to_float(ParseConfig(wpnId, "damage"))
+        cvar_speed[wpnId] = str_to_float(ParseConfig(wpnId, "speed"))
+        cvar_fastrun[wpnId] = str_to_float(ParseConfig(wpnId, "fastrun"))
+        cvar_sightrecoil[wpnId] = str_to_float(ParseConfig(wpnId, "sight_recoil"))
     }
 }
 
 public plugin_startup() {
-    new _pistols_File[128] = { "addons/amxmodx/configs/nst_weapons/nst_pistols.ini" }
+    new secondaryFile[128] = { "addons/amxmodx/configs/nst_weapons/nst_secondary.ini" }
+    IsConfigBroken = !file_exists(secondaryFile)
 
-    if (!file_exists(_pistols_File)) {
-        new log_file[256]
-        formatex(log_file[0], charsmax(log_file) - 0, "%L", LANG_PLAYER, "FILE_NOT_LOADED")
-        replace(log_file, 255, "$", "./.../nst_pistols.ini")
-
-        server_print("[NST Weapons] %s", log_file)
-        brokenConfig = 1
-
+    if (IsConfigBroken) {
+        new log[256]
+        formatex(log[0], charsmax(log) - 0, "%L", LANG_PLAYER, "FILE_NOT_LOADED", "../nst_weapons/nst_secondary.ini")
+        server_print("[NST Weapons] %s", log)
         return
     }
 
-    Pistol_InfoText = ArrayCreate(256)
-    Pistol_Numbers = ArrayCreate(16)
+    Pistol_InfoText = ArrayCreate(128)
     Pistol_Names = ArrayCreate(64)
-    cvar_buycvar = ArrayCreate(64)
 
-    readConfig()
-    readConfigSections()
+    ReadConfig()
+    ReadConfigSections()
 
-    if (configSyntax() == -1) {
-        new log_file[256]
-        formatex(log_file[0], charsmax(log_file) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG")
-        replace(log_file, 255, "$", "./.../nst_pistols.ini")
+    new exceptionLine = 0
+    IsConfigBroken = !CheckConfigSyntax(exceptionLine)
 
-        server_print("[NST Weapons] %s", log_file)
-        brokenConfig = 1
-
-        return;
+    if (IsConfigBroken) {
+        new log[256]
+        formatex(log[0], charsmax(log) - 0, "%L", LANG_PLAYER, "BROKEN_CONFIG", "../nst_weapons/nst_secondary.ini", exceptionLine)
+        server_print("[NST Weapons] %s", log)
+        return
     }
 }
 
-public config_error_log() {
-    new _pistols_File[64] = { "addons/amxmodx/configs/nst_weapons/nst_pistols.ini" }
-    new log_msg[256]
-    formatex(log_msg[0], charsmax(log_msg) - 0, "%L", LANG_PLAYER, (!file_exists(_pistols_File)) ? "FILE_NOT_LOADED" : "BROKEN_CONFIG")
-    replace(log_msg, 255, "$", "./.../nst_pistols.ini")
-
-    server_print("[NST Weapons] %s", log_msg)
-    brokenConfig = 1
-    return;
-}
-
-public readConfigSections() {
+ReadConfigSections() {
     new sectionNumber = 0
-    new temp[64]
+    new buffer[64]
 
-    for (new i = 0; i < ArraySize(Pistol_InfoText) && i < MAX_WPN; i++) {
-        if (i == 0) {
-            ArrayPushString(Pistol_Names, temp)
-            ArrayPushCell(Pistol_Numbers, sectionNumber)
-            i++;
-        }
-        ArrayGetString(Pistol_InfoText, sectionNumber, temp, charsmax(temp))
-        replace(temp, 63, "[", "")
-        replace(temp, 63, "]", "")
-        replace(temp, 63, "^n", "")
-        ArrayPushString(Pistol_Names, temp)
-        ArrayPushCell(Pistol_Numbers, sectionNumber)
+    ArrayPushString(Pistol_Names, "")
 
-        if (ArraySize(Pistol_InfoText) > sectionNumber + NEXT_SECTION) {
-            sectionNumber = sectionNumber + NEXT_SECTION
-        } else {
-            i = ArraySize(Pistol_InfoText)
-        }
+    for (new i = 0; i < ArraySize(Pistol_InfoText) / NEXT_SECTION && i < MAX_WPN; i++) {
+        ArrayGetString(Pistol_InfoText, sectionNumber, buffer, charsmax(buffer))
+        replace(buffer, charsmax(buffer), "[", "")
+        replace(buffer, charsmax(buffer), "]", "")
+        replace(buffer, charsmax(buffer), "^n", "")
+        ArrayPushString(Pistol_Names, buffer)
+        sectionNumber = ArraySize(Pistol_InfoText) > sectionNumber + NEXT_SECTION ? sectionNumber + NEXT_SECTION : ArraySize(Pistol_InfoText)
     }
+
     sectionNumber = 0
 }
 
-public readConfig() {
+ReadConfig() {
     new buffer[256]
     new left_comment[256], right_comment[256], left_s_comment[256], right_s_comment[256]
 
-    new fp_pistols = fopen("addons/amxmodx/configs/nst_weapons/nst_pistols.ini", "r")
-    while (!feof(fp_pistols)) {
-        fgets(fp_pistols, buffer, charsmax(buffer))
+    new secondaryFile = fopen("addons/amxmodx/configs/nst_weapons/nst_secondary.ini", "r")
+    while (!feof(secondaryFile)) {
+        fgets(secondaryFile, buffer, charsmax(buffer))
 
         //Comment Line Remover
-        strtok(buffer, left_comment, 255, right_comment, 255, ';')
-        format(right_comment, 255, ";%s", right_comment)
-        str_replace(buffer, 255, right_comment, "_THIS_IS_COMMENT_LINE_")
+        strtok(buffer, left_comment, charsmax(left_comment), right_comment, charsmax(right_comment), ';')
+        format(right_comment, charsmax(right_comment), ";%s", right_comment)
+        str_replace(buffer, charsmax(buffer), right_comment, strlen(left_comment) ? " " : "COMMENT_LINE")
 
         //Comment Line Remover 2
-        strtok(buffer, left_s_comment, 255, right_s_comment, 255, ']')
+        strtok(buffer, left_s_comment, charsmax(left_s_comment), right_s_comment, charsmax(right_s_comment), ']')
         if (!equali(right_s_comment, "")) {
-            str_replace(buffer, 255, right_s_comment, "")
+            str_replace(buffer, charsmax(buffer), right_s_comment, "")
         }
 
-        ArrayPushString(Pistol_InfoText, buffer)
-
-        for (new i = 0; i < ArraySize(Pistol_InfoText); i++) {
-            new temp[256]
-            ArrayGetString(Pistol_InfoText, i, temp, charsmax(temp))
-            if (equali(temp, "_THIS_IS_COMMENT_LINE_")) {
-                ArrayDeleteItem(Pistol_InfoText, i)
-            }
+        if (!equali(buffer, "^n")) {
+            ArrayPushString(Pistol_InfoText, buffer)
         }
     }
-    fclose(fp_pistols)
+
+    for (new i = 0; i < ArraySize(Pistol_InfoText); i++) {
+        new commentBuffer[256]
+        ArrayGetString(Pistol_InfoText, i, commentBuffer, charsmax(commentBuffer))
+
+        if (equali(commentBuffer, "COMMENT_LINE")) {
+            ArrayDeleteItem(Pistol_InfoText, i)
+        }
+    }
+
+    fclose(secondaryFile)
 }
 
-stock parseConfig(const strKey, const Property[]) {
+ParseConfig(const wpnId, const Property[], & syntaxLine = 0) {
     const administrator = 1
     const cost = 2
     const wpn_id = 3
@@ -343,286 +300,265 @@ stock parseConfig(const strKey, const Property[]) {
     const fire_sounds = 22
     const buycvar = 23
 
-    new parserLine[128]
-    new rightValue[128], leftValue[32]
-
-    new PropertyNumber
+    new propertyLine
 
     if (equali(Property, "administrator")) {
-        PropertyNumber = administrator
+        propertyLine = administrator
     }
     if (equali(Property, "cost")) {
-        PropertyNumber = cost
+        propertyLine = cost
     }
     if (equali(Property, "wpn_id")) {
-        PropertyNumber = wpn_id
+        propertyLine = wpn_id
     }
     if (equali(Property, "clip")) {
-        PropertyNumber = clip
+        propertyLine = clip
     }
     if (equali(Property, "ammo")) {
-        PropertyNumber = ammo
+        propertyLine = ammo
     }
     if (equali(Property, "damage")) {
-        PropertyNumber = damage
+        propertyLine = damage
     }
     if (equali(Property, "recoil")) {
-        PropertyNumber = recoil
+        propertyLine = recoil
     }
     if (equali(Property, "deploy")) {
-        PropertyNumber = deploy
+        propertyLine = deploy
     }
     if (equali(Property, "reload")) {
-        PropertyNumber = reload
+        propertyLine = reload
     }
     if (equali(Property, "speed")) {
-        PropertyNumber = speed
+        propertyLine = speed
     }
     if (equali(Property, "knockback")) {
-        PropertyNumber = knockback
+        propertyLine = knockback
     }
     if (equali(Property, "fastrun")) {
-        PropertyNumber = fastrun
+        propertyLine = fastrun
     }
     if (equali(Property, "secondary_type")) {
-        PropertyNumber = secondary_type
+        propertyLine = secondary_type
     }
     if (equali(Property, "tracer")) {
-        PropertyNumber = tracer
+        propertyLine = tracer
     }
     if (equali(Property, "tracer_type")) {
-        PropertyNumber = tracer_type
+        propertyLine = tracer_type
     }
     if (equali(Property, "tracer_sprite")) {
-        PropertyNumber = tracer_sprite
+        propertyLine = tracer_sprite
     }
     if (equali(Property, "sight_recoil")) {
-        PropertyNumber = sight_recoil
+        propertyLine = sight_recoil
     }
     if (equali(Property, "sight_model")) {
-        PropertyNumber = sight_model
+        propertyLine = sight_model
     }
     if (equali(Property, "v_model")) {
-        PropertyNumber = v_model
+        propertyLine = v_model
     }
     if (equali(Property, "p_model")) {
-        PropertyNumber = p_model
+        propertyLine = p_model
     }
     if (equali(Property, "w_model")) {
-        PropertyNumber = w_model
+        propertyLine = w_model
     }
     if (equali(Property, "fire_sounds")) {
-        PropertyNumber = fire_sounds
+        propertyLine = fire_sounds
     }
     if (equali(Property, "buycvar")) {
-        PropertyNumber = buycvar
+        propertyLine = buycvar
     }
 
-    ArrayGetString(Pistol_InfoText, ArrayGetCell(Pistol_Numbers, strKey) + PropertyNumber, parserLine, charsmax(parserLine))
-    strtok(parserLine, leftValue, 64, rightValue, 127, '=')
-    trim(leftValue);
-    trim(rightValue);
+    new parseLine[128]
+    new field[128], value[128]
+    new fieldLineNumber = max((wpnId * NEXT_SECTION) - NEXT_SECTION + propertyLine, 0)
 
-    return rightValue
+    ArrayGetString(Pistol_InfoText, fieldLineNumber, parseLine, charsmax(parseLine))
+    strtok(parseLine, field, charsmax(field), value, charsmax(value), '=')
+    trim(value)
+
+    syntaxLine = fieldLineNumber + 1
+
+    return value
 }
 
-stock configSyntax() {
-    new temp[128]
+bool:CheckConfigSyntax( & exceptionLine) {
+    new buffer[128]
 
     for (new i = 1; i < ArraySize(Pistol_Names); i++) {
-        if (!equali(parseConfig(i, "administrator"), "0")) {
-            if (!equali(parseConfig(i, "administrator"), "1")) {
-                return -1;
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "administrator", exceptionLine))
+        if (!equali(buffer, "0") && !equali(buffer, "1")) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "cost", exceptionLine))
+        if (!isdigit(buffer[0])) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "wpn_id", exceptionLine))
+        new wpnId = str_to_num(buffer[0])
+
+        if (wpnId != CSW_P228 &&
+            wpnId != CSW_ELITE &&
+            wpnId != CSW_FIVESEVEN &&
+            wpnId != CSW_USP &&
+            wpnId != CSW_GLOCK18 &&
+            wpnId != CSW_DEAGLE) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "clip", exceptionLine))
+        if (!isdigit(buffer[0])) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "ammo", exceptionLine))
+        if (!isdigit(buffer[0])) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "damage", exceptionLine))
+        if (!isdigit(buffer[0])) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "recoil", exceptionLine))
+        if (!isdigit(buffer[0])) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "deploy", exceptionLine))
+        if (!isdigit(buffer[0])) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "reload", exceptionLine))
+        if (!equali(buffer, "0") && !equali(buffer, "1")) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "speed", exceptionLine))
+        if (!isdigit(buffer[0])) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "knockback", exceptionLine))
+        if (!isdigit(buffer[0])) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "fastrun", exceptionLine))
+        if (!isdigit(buffer[0])) {
+            return false
+        }
+
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "secondary_type", exceptionLine))
+        if (!equali(buffer, "0") &&
+            !equali(buffer, "1") &&
+            !equali(buffer, "2") &&
+            !equali(buffer, "3") &&
+            !equali(buffer, "4")) {
+            return false
+        } else if (equali(buffer, "3")) {
+            formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "sight_recoil", exceptionLine))
+            if (!isdigit(buffer[0])) {
+                return false
             }
-        }
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "cost"))
 
-        if (!isdigit(temp[0])) {
-            return -1;
-        }
-
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "wpn_id"))
-
-        if (str_to_num(temp[0]) == 0 || str_to_num(temp[0]) == 2 || str_to_num(temp[0]) == 29 || str_to_num(temp[0]) > 30 && (str_to_num(temp[0]) != 1 && str_to_num(temp[0]) != 10 && str_to_num(temp[0]) != 11 && str_to_num(temp[0]) != 16 && str_to_num(temp[0]) != 17 && str_to_num(temp[0]) != 26) || str_to_num(temp[0]) == 4 || str_to_num(temp[0]) == 9 || str_to_num(temp[0]) == 25) {
-            return -1;
-        }
-
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "clip"))
-
-        if (!isdigit(temp[0])) {
-            return -1;
-        }
-
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "ammo"))
-
-        if (!isdigit(temp[0])) {
-            return -1;
-        }
-
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "damage"))
-
-        if (!isdigit(temp[0])) {
-            return -1;
-        }
-
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "recoil"))
-
-        if (!isdigit(temp[0])) {
-            return -1;
-        }
-
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "deploy"))
-
-        if (!isdigit(temp[0])) {
-            return -1;
-        }
-
-        if (!equali(parseConfig(i, "reload"), "0")) {
-            if (!equali(parseConfig(i, "reload"), "1")) {
-                return -1;
-            }
-        }
-
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "speed"))
-
-        if (!isdigit(temp[0])) {
-            return -1;
-        }
-
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "knockback"))
-
-        if (!isdigit(temp[0])) {
-            return -1;
-        }
-
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "fastrun"))
-
-        if (!isdigit(temp[0])) {
-            return -1;
-        }
-
-        if (!equali(parseConfig(i, "secondary_type"), "0")) {
-            if (!equali(parseConfig(i, "secondary_type"), "1")) {
-                if (!equali(parseConfig(i, "secondary_type"), "2")) {
-                    if (!equali(parseConfig(i, "secondary_type"), "3")) {
-                        if (!equali(parseConfig(i, "secondary_type"), "4")) {
-                            return -1;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!equali(parseConfig(i, "tracer_type"), "0")) {
-            if (!equali(parseConfig(i, "tracer_type"), "1")) {
-                if (!equali(parseConfig(i, "tracer_type"), "2")) {
-                    return -1;
-                }
+            formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "sight_model", exceptionLine))
+            if (contain(buffer, ".mdl") == -1) {
+                return false
             }
         }
 
-        if (!equali(parseConfig(i, "tracer_type"), "0")) {
-            formatex(temp, charsmax(temp), "%s", parseConfig(i, "tracer"))
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "tracer_type", exceptionLine))
+        if (!equali(buffer, "0") &&
+            !equali(buffer, "1") &&
+            !equali(buffer, "2") &&
+            !equali(buffer, "3")) {
+            return false
+        } else if (!equali(ParseConfig(i, "tracer_type"), "0")) {
+            formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "tracer", exceptionLine))
 
             new r_color[64], g_color[64], b_color[64], width[64], right[64]
-            strtok(temp, r_color, 64, right, 64, ',')
+            strtok(buffer, r_color, 64, right, 64, ',')
             strtok(right, g_color, 64, right, 64, ',')
             strtok(right, b_color, 64, width, 64, ',')
 
-            if (!equali(temp[0], "0")) {
-                if (!strlen(r_color) || !strlen(g_color) || !strlen(width)) {
-                    if (!isdigit(r_color[0]) || !isdigit(g_color[0]) || !isdigit(b_color[0]) || !isdigit(width[0])) {
-                        return -1;
-                    }
-                }
+            if (!equali(buffer[0], "0") &&
+                (!strlen(r_color) || !strlen(g_color) || !strlen(width)) &&
+                (!isdigit(r_color[0]) || !isdigit(g_color[0]) || !isdigit(b_color[0]) || !isdigit(width[0]))) {
+                return false
             }
 
-            if (!contain(parseConfig(i, "tracer_sprite"), ".spr")) {
-                return -1
-            }
-        }
-
-        if (equali(parseConfig(i, "secondary_type"), "3")) {
-            formatex(temp, charsmax(temp), "%s", parseConfig(i, "sight_recoil"))
-
-            if (!isdigit(temp[0])) {
-                return -1;
-            }
-
-            if (!contain(parseConfig(i, "sight_model"), ".mdl")) {
-                return -1
+            formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "tracer_sprite", exceptionLine))
+            if (contain(buffer, ".spr") == -1) {
+                return false
             }
         }
 
-        if (!contain(parseConfig(i, "v_model"), ".mdl")) {
-            return -1
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "v_model", exceptionLine))
+        if (contain(buffer, ".mdl") == -1) {
+            return false
         }
 
-        if (!contain(parseConfig(i, "p_model"), ".mdl")) {
-            return -1
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "p_model", exceptionLine))
+        if (contain(buffer, ".mdl") == -1) {
+            return false
         }
 
-        if (!contain(parseConfig(i, "w_model"), ".mdl")) {
-            return -1
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "w_model", exceptionLine))
+        if (contain(buffer, ".mdl") == -1) {
+            return false
         }
 
-        if (!contain(parseConfig(i, "fire_sounds"), ".wav")) {
-            return -1
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "fire_sounds", exceptionLine))
+        if (contain(buffer, ".wav") == -1) {
+            return false
         }
 
-        formatex(temp, charsmax(temp), "%s", parseConfig(i, "buycvar"))
-        if (!strlen(temp) && (!equali(temp, " ") || !equali(temp, "NULL"))) {
-            return -1
+        formatex(buffer, charsmax(buffer), "%s", ParseConfig(i, "buycvar", exceptionLine))
+        if (!strlen(buffer) && (!equali(buffer, " ") || !equali(buffer, ""))) {
+            return false
         }
     }
 
-    return 0;
+    exceptionLine = 0
+    return true
 }
 
-stock drop_all_secondary(client) {
-    for (new i = 0; i < sizeof(pistols); i++) {
-        static dropweapon[64]
-        get_weaponname(pistols[i], dropweapon, sizeof dropweapon - 1)
+DropSecondary(client) {
+    new dropweapon[64]
+    for (new i = 0; i < sizeof(secondaryWeaponsId); i++) {
+        get_weaponname(secondaryWeaponsId[i], dropweapon, sizeof dropweapon - 1)
         engclient_cmd(client, "drop", dropweapon)
     }
 }
 
-stock get_weapon_ent(client, wpnid = 0, wpnName[] = "") {
-    static newName[24];
+GetWeaponEnt(client, wpnId = 0) {
+    new className[64]
+    get_weaponname(wpnId, className, charsmax(className))
 
-    if (wpnid) {
-        get_weaponname(wpnid, newName, 23);
-    } else {
-        formatex(newName, 23, "%s", wpnName);
-    }
-
-    if (!equal(newName, "weapon_", 7)) {
-        format(newName, 23, "weapon_%s", newName);
-    }
-
-    return fm_find_ent_by_owner(get_maxplayers(), newName, client);
+    return fm_find_ent_by_owner(get_maxplayers(), className, client)
 }
 
-stock user_has_secondary(client) {
-    new return_value = 0
-    for (new i = 0; i < sizeof(pistols); i++) {
-        if (user_has_weapon(client, pistols[i])) {
-            return_value = 1
-        }
-    }
-
-    return return_value
+bool:HasUserSecondary(client) {
+    return (get_pdata_cbase(client, m_rgpPlayerItems_Slot2, 5) > 0)
 }
 
-stock set_weapon_timeidle(client, Float:TimeIdle) {
+SetWeaponTime(client, Float: TimeIdle) {
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
 
     if (!is_user_alive(client)) {
         return
     }
 
-    static entity;
+    static entity
     entity = fm_get_user_weapon_entity(client, CHANGE_WEAPON)
 
     if (!pev_valid(entity)) {
@@ -634,249 +570,207 @@ stock set_weapon_timeidle(client, Float:TimeIdle) {
     set_pdata_float(entity, m_flTimeWeaponIdle, TimeIdle + 1.0, 4)
 }
 
-stock set_player_nextattack(client, Float:nexttime) {
-    if (!is_user_alive(client)) {
-        return
-    }
-
-    set_pdata_float(client, 83, nexttime, 5)
+SetWeaponNextAttack(client, Float: nexttime) {
+    set_pdata_float(client, m_flNextAttack, nexttime, 5)
 }
 
-stock set_weapon_anim(const Player, const Sequence) {
+SetWeaponAnim(const Player, const Sequence) {
     set_pev(Player, pev_weaponanim, Sequence)
-
     message_begin(MSG_ONE_UNRELIABLE, SVC_WEAPONANIM, .player = Player)
     write_byte(Sequence)
     write_byte(pev(Player, pev_body))
     message_end()
 }
 
-stock get_pistol_sound(cur_wpn) {
-    new total_sound[252], BLANK[252]
-    new fs_left[252], fs_right[252]
+GetCustomSecondarySound(weapon) {
+    new sound[256]
+    new sound1[64], sound2[64]
 
-    formatex(total_sound, charsmax(total_sound), "%s", parseConfig(cur_wpn, "fire_sounds"))
-    strtok(total_sound, fs_left, 252, fs_right, 252, '*')
-    trim(fs_left)
-    trim(fs_right)
+    formatex(sound, charsmax(sound), "%s", ParseConfig(weapon, "fire_sounds"))
+    strtok(sound, sound1, charsmax(sound1), sound2, charsmax(sound2), '*')
+    trim(sound1)
+    trim(sound2)
 
-    if (equali(fs_left, "") || equali(fs_right, "")) {
-        format(total_sound, 252, "weapons/%s", total_sound)
-
-        return total_sound
+    if (contain(sound2, ".wav") == -1) {
+        format(sound, charsmax(sound), "weapons/%s", sound)
     } else {
-        format(fs_left, 252, "weapons/%s", fs_left)
-        format(fs_right, 252, "weapons/%s", fs_right)
-
-        new selected_variable[252]
-        switch (random_num(0, 1)) {
-            case 0:
-                selected_variable = fs_left
-            case 1:
-                selected_variable = fs_right
-        }
-
-        return selected_variable
+        format(sound1, charsmax(sound1), "weapons/%s", sound1)
+        format(sound2, charsmax(sound2), "weapons/%s", sound2)
+        sound = random_num(0, 1) == 0 ? sound1 : sound2
     }
 
-    return BLANK
+    return sound
 }
 
-stock create_velocity_vector(victim, attacker, Float:velocity[3], Float:knockback) {
-    if (!is_user_alive(attacker)) {
-        return 0;
-    }
+CreateVelocityVector(victim, attacker, Float: velocity[3], Float: knockback) {
+    new Float: victim_origin[3], Float: attacker_origin[3], Float: new_origin[3]
 
-    if (!is_valid_ent(attacker)) {
-        return 0;
-    }
+    entity_get_vector(victim, EV_VEC_origin, victim_origin)
+    entity_get_vector(attacker, EV_VEC_origin, attacker_origin)
 
-    new Float:victim_origin[3], Float:attacker_origin[3], Float:new_origin[3];
+    new_origin[0] = victim_origin[0] - attacker_origin[0]
+    new_origin[1] = victim_origin[1] - attacker_origin[1]
 
-    entity_get_vector(victim, EV_VEC_origin, victim_origin);
-    entity_get_vector(attacker, EV_VEC_origin, attacker_origin);
-
-    new_origin[0] = victim_origin[0] - attacker_origin[0];
-    new_origin[1] = victim_origin[1] - attacker_origin[1];
-
-    velocity[0] = (new_origin[0] * (knockback * 900)) / get_entity_distance(victim, attacker);
-    velocity[1] = (new_origin[1] * (knockback * 900)) / get_entity_distance(victim, attacker);
-
-    return 1;
+    velocity[0] = (new_origin[0] * (knockback * 900)) / get_entity_distance(victim, attacker)
+    velocity[1] = (new_origin[1] * (knockback * 900)) / get_entity_distance(victim, attacker)
 }
 
-stock get_weapon_attachment(client, Float:output[3], Float:fDis = 40.0) {
-    static Float:vfEnd[3], viEnd[3]
-    get_user_origin(client, viEnd, 3)
-    IVecFVec(viEnd, vfEnd)
+GetFireAnimation(wpnId, mode) {
+    switch (wpnId) {
+        case CSW_P228:
+            return random_num(1, 3)
+        case CSW_SCOUT:
+            return random_num(1, 2)
+        case CSW_XM1014:
+            return random_num(1, 2)
+        case CSW_MAC10:
+            return random_num(3, 5)
+        case CSW_AUG:
+            return random_num(3, 5)
+        case CSW_ELITE:
+            return random_num(0, 10) < 7 ? random_num(2, 6) : random_num(8, 12)
+        case CSW_FIVESEVEN:
+            return random_num(1, 2)
+        case CSW_UMP45:
+            return random_num(3, 5)
+        case CSW_SG550:
+            return random_num(1, 2)
+        case CSW_GALIL:
+            return random_num(3, 5)
+        case CSW_FAMAS:
+            return random_num(3, 5)
+        case CSW_USP:
+            return mode ? random_num(1, 3) : random_num(9, 11) //CHECK THIS OUT
+        case CSW_GLOCK18:
+            return 5
+        case CSW_AWP:
+            return random_num(1, 3)
+        case CSW_MP5NAVY:
+            return random_num(3, 5)
+        case CSW_M249:
+            return random_num(1, 2)
+        case CSW_M4A1:
+            return mode ? random_num(1, 3) : random_num(8, 10) //CHECK THIS OUT
+        case CSW_TMP:
+            return random_num(3, 5)
+        case CSW_G3SG1:
+            return random_num(1, 2)
+        case CSW_DEAGLE:
+            return random_num(1, 2)
+        case CSW_SG552:
+            return random_num(3, 5)
+        case CSW_AK47:
+            return random_num(3, 5)
+        case CSW_P90:
+            return random_num(3, 5)
+    }
 
-    static Float:fOrigin[3], Float:fAngle[3]
-
-    pev(client, pev_origin, fOrigin)
-    pev(client, pev_view_ofs, fAngle)
-
-    xs_vec_add(fOrigin, fAngle, fOrigin)
-
-    static Float:fAttack[3]
-
-    xs_vec_sub(vfEnd, fOrigin, fAttack)
-    xs_vec_sub(vfEnd, fOrigin, fAttack)
-
-    static Float:fRate
-
-    fRate = fDis / vector_length(fAttack)
-    xs_vec_mul_scalar(fAttack, fRate, fAttack)
-
-    xs_vec_add(fOrigin, fAttack, output)
+    return 0
 }
 
 ShowHud_Ammo(client, ammo) {
-    new wpn_id = get_user_weapon(client, _, _)
+    new wpnId = get_user_weapon(client)
     message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("AmmoPickup"), _, client)
-    write_byte(weapons_ammo_id[wpn_id])
+    write_byte(weaponsAmmoId[wpnId])
     write_byte(ammo)
     message_end()
 }
 
-SetFov(client, iFov) {
-    set_pev(client, pev_fov, iFov)
-    set_pdata_int(client, m_iFOV, iFov, 5)
-}
-
-ResetFov(client) {
-    if (0 <= get_pdata_int(client, m_iFOV, 5) <= 90) {
-        set_pev(client, pev_fov, 90)
-        set_pdata_int(client, m_iFOV, 90, 5)
+Remove_WeaponsBox() {
+    new entity
+    for (new i = 1; i < sizeof(class_weapons); i++) {
+        while ((entity = find_ent_by_class(entity, class_weapons[i]))) {
+            set_pev(entity, pev_nextthink, get_gametime())
+        }
     }
 }
 
-public NST_Pistols(client) {
-    new temp[64]
+Buy_Weapon(client, wpnId) {
+    if (IsConfigBroken) {
+        return
+    }
+
+    new buyzone = cs_get_user_buyzone(client)
+
+    if ((get_cvar_num("nst_use_buyzone") ? buyzone : 1) == 0) {
+        client_print(client, print_chat, "[NST Wpn] %L", LANG_PLAYER, "CANT_BUY_WEAPON")
+    } else {
+        new user_money = cs_get_user_money(client)
+        new wp_cost = cvar_cost[wpnId]
+        new clipMax = cvar_clip[wpnId]
+        new ammo_max = cvar_ammo[wpnId]
+        new administrator = cvar_administrator[wpnId]
+
+        if (!(get_user_flags(client) & ADMIN_KICK) && administrator == 1) {
+            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ACCESS_DENIED_BUY")
+        } else if (!is_user_alive(client)) {
+            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "NOT_LIVE")
+        } else if (get_gametime() - gameTime > get_cvar_num("nst_buy_time")) {
+            engclient_print(client, engprint_center, "%L", LANG_PLAYER, "BUY_TIME_END", get_cvar_num("nst_buy_time"))
+        } else if (HAS_WEAPON[client] == wpnId) {
+            new buffer[256]
+            ArrayGetString(Pistol_Names, HAS_WEAPON[client], buffer, charsmax(buffer))
+
+            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", buffer)
+        } else if (get_cvar_num("nst_free") ? true : (wp_cost <= cs_get_user_money(client))) {
+            DropSecondary(client)
+
+            CURRENT_WEAPON[client] = wpnId
+            HAS_WEAPON[client] = wpnId
+            Give_Weapon(client, clipMax, ammo_max)
+            ShowHud_Ammo(client, ammo_max)
+
+            if (get_cvar_num("nst_free") == 0) {
+                cs_set_user_money(client, user_money + -wp_cost)
+            }
+        } else {
+            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "INSUFFICIENT_MONEY")
+        }
+    }
+}
+
+public NST_Secondary(client) {
+    if (IsConfigBroken || IsInCommencing) {
+        return PLUGIN_HANDLED
+    }
+
+    if (!is_user_alive(client)) {
+        client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "USER_IS_DEAD")
+        return PLUGIN_HANDLED
+    }
+
     new menu[512], menuxx
     new text[256], len = 0
-    new administrator, wpn_id
+
     formatex(menu, charsmax(menu), "%L", LANG_PLAYER, "MENU_TITLE")
     menuxx = menu_create(menu, "Get_NSTWeapon")
 
-    if (brokenConfig == 0 && commencing == 0) {
-        for (new i = 1; i < ArraySize(Pistol_Names); i++) {
-            administrator = str_to_num(parseConfig(i, "administrator"))
-            wpn_id = str_to_num(parseConfig(i, "wpn_id"))
-            new menuKey[64]
-            ArrayGetString(Pistol_Names, i, temp, charsmax(temp))
+    for (new i = 1; i < ArraySize(Pistol_Names); i++) {
+        new administrator = str_to_num(ParseConfig(i, "administrator"))
+        new wpnId = str_to_num(ParseConfig(i, "wpn_id"))
 
-            if (wpn_id == 1 || wpn_id == 10 || wpn_id == 11 || wpn_id == 16 || wpn_id == 17 || wpn_id == 26) {
-                if (administrator == 0) {
-                    formatex(menu, charsmax(menu), "%s 	\r$%s", temp, parseConfig(i, "cost"))
-                    num_to_str(i + 1, menuKey, 999)
-                    menu_additem(menuxx, menu, menuKey)
-                } else {
-                    formatex(menu, charsmax(menu), "\y%s 	\r$%s", temp, parseConfig(i, "cost"))
-                    num_to_str(i + 1, menuKey, 999)
-                    menu_additem(menuxx, menu, menuKey)
-                }
-            }
+        new title[64]
+        ArrayGetString(Pistol_Names, i, title, charsmax(title))
+
+        if (wpnId == 1 || wpnId == 10 || wpnId == 11 || wpnId == 16 || wpnId == 17 || wpnId == 26) {
+            new menuKey[64]
+            formatex(menu, charsmax(menu), administrator == 0 ? "%s 	\r$%s" : "\y%s 	\r$%s", title, ParseConfig(i, "cost"))
+            num_to_str(i + 1, menuKey, 999)
+            menu_additem(menuxx, menu, menuKey)
         }
-    } else {
-        config_error_log()
     }
 
-    formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT");
+    formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_NEXT")
     menu_setprop(menuxx, MPROP_NEXTNAME, text)
 
-    formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_BACK");
+    formatex(text[len], charsmax(text) - len, "%L", LANG_PLAYER, "MENU_BACK")
     menu_setprop(menuxx, MPROP_BACKNAME, text)
 
     menu_setprop(menuxx, MPROP_EXIT, "\r%L", LANG_PLAYER, "MENU_EXIT")
 
-    if (is_user_alive(client)) {
-        menu_display(client, menuxx, 0)
-    } else {
-        client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "USER_IS_DEAD")
-    }
+    menu_display(client, menuxx, 0)
 
     return PLUGIN_HANDLED
-}
-
-public ClientCommand_buyammo2(client) {
-    new iAmmo, iWeapon, ammo_max, ammo_def
-
-    if (brokenConfig != 0) {
-        for (new i = 0; i < sizeof(pistols); i++) {
-            if (user_has_weapon(client, pistols[i])) {
-                iWeapon = pistols[i]
-            }
-        }
-
-        if (buy_AmmoCost[iWeapon] < cs_get_user_money(client)) {
-            if (iAmmo < ammo_def) {
-                cs_set_user_money(client, cs_get_user_money(client) + -buy_AmmoCost[iWeapon])
-                cs_set_user_bpammo(client, iWeapon, iAmmo + buy_AmmoCount[iWeapon])
-
-                if (cs_get_user_bpammo(client, iWeapon) > ammo_def) {
-                    cs_set_user_bpammo(client, iWeapon, ammo_def)
-                    ShowHud_Ammo(client, ammo_def - iAmmo)
-                } else {
-                    ShowHud_Ammo(client, buy_AmmoCount[iWeapon])
-                }
-
-                client_cmd(0, "spk sound/items/9mmclip1.wav")
-            }
-        }
-    } else {
-        new buyzone = cs_get_user_buyzone(client)
-        new CURRENT_WEAPON = HAS_WEAPON[client]
-
-        if ((get_cvar_num("nst_use_buyzone") ? buyzone : 1) && user_has_secondary(client)) {
-            for (new i = 0; i < sizeof(pistols); i++) {
-                if (user_has_weapon(client, pistols[i])) {
-                    iWeapon = pistols[i]
-                }
-            }
-
-            if (iWeapon != 0) {
-                ammo_def = weapons_max_bp_ammo[iWeapon]
-                ammo_max = cvar_ammo[CURRENT_WEAPON]
-                iAmmo = cs_get_user_bpammo(client, iWeapon);
-
-                if (HAS_WEAPON[client]) {
-                    if (buy_AmmoCost[iWeapon] < cs_get_user_money(client)) {
-                        if (iAmmo < ammo_max) {
-                            cs_set_user_money(client, cs_get_user_money(client) + -buy_AmmoCost[iWeapon])
-                            cs_set_user_bpammo(client, iWeapon, iAmmo + buy_AmmoCount[iWeapon])
-
-                            if (cs_get_user_bpammo(client, iWeapon) > ammo_max) {
-                                cs_set_user_bpammo(client, iWeapon, ammo_max)
-                                ShowHud_Ammo(client, ammo_max - iAmmo)
-                            } else {
-                                ShowHud_Ammo(client, buy_AmmoCount[iWeapon])
-                            }
-
-                            client_cmd(0, "spk sound/items/9mmclip1.wav")
-                        }
-                    }
-                } else {
-                    if (buy_AmmoCost[iWeapon] < cs_get_user_money(client)) {
-                        if (iAmmo < ammo_def) {
-                            cs_set_user_money(client, cs_get_user_money(client) + -buy_AmmoCost[iWeapon])
-                            cs_set_user_bpammo(client, iWeapon, iAmmo + buy_AmmoCount[iWeapon])
-
-                            if (cs_get_user_bpammo(client, iWeapon) > ammo_def) {
-                                cs_set_user_bpammo(client, iWeapon, ammo_def)
-                                ShowHud_Ammo(client, ammo_def - iAmmo)
-                            } else {
-                                ShowHud_Ammo(client, buy_AmmoCount[iWeapon])
-                            }
-
-                            client_cmd(0, "spk sound/items/9mmclip1.wav")
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return PLUGIN_HANDLED_MAIN
 }
 
 public Get_NSTWeapon(client, menu, item) {
@@ -892,8 +786,7 @@ public Get_NSTWeapon(client, menu, item) {
 public NST_Buy_Convar(client) {
     new msg[64]
     if (read_argc() != 2) {
-        formatex(msg, charsmax(msg), "[NST Wpn] %L", LANG_PLAYER, "BUY_COMMAND_USAGE")
-        replace(msg, 64, "$", "nst_pistol_buy")
+        formatex(msg, charsmax(msg), "[NST Wpn] %L", LANG_PLAYER, "BUY_COMMAND_USAGE", "nst_pistol_buy")
         client_print(client, print_console, msg)
         return PLUGIN_HANDLED
     }
@@ -902,11 +795,11 @@ public NST_Buy_Convar(client) {
     read_argv(1, arg, 63)
     strtolower(arg)
 
-    for (new i = 0; i < ArraySize(cvar_buycvar); i++) {
-        new temp[128]
-        ArrayGetString(cvar_buycvar, i, temp, charsmax(temp))
-        if (equali(temp, arg) && (!equali(temp, "NULL") && !equali(temp, " "))) {
-            Buy_Weapon(client, i + 1)
+    for (new i = 1; i < sizeof cvar_buycvar; i++) {
+        new buffer[128]
+        formatex(buffer, charsmax(buffer), "%s", cvar_buycvar[i])
+        if (equali(buffer, arg) && (!equali(buffer, "NULL") && !equali(buffer, " "))) {
+            Buy_Weapon(client, i)
             break
         }
     }
@@ -914,435 +807,436 @@ public NST_Buy_Convar(client) {
     return PLUGIN_HANDLED
 }
 
-public Buy_Weapon(client, wpnid) {
-    if (brokenConfig != 0) {
-        return
-    }
-
-    new buyzone = cs_get_user_buyzone(client)
-
-    if ((get_cvar_num("nst_use_buyzone") ? buyzone : 1) == 0) {
-        client_print(client, print_chat, "[NST Wpn] %L", LANG_PLAYER, "CANT_BUY_WEAPON")
-    } else {
-        new plrClip, plrAmmo
-        get_user_weapon(client, plrClip, plrAmmo)
-
-        new user_money = cs_get_user_money(client)
-        new wp_cost = cvar_cost[wpnid]
-        new clip_max = cvar_clip[wpnid]
-        new ammo_max = cvar_ammo[wpnid]
-        new administrator = cvar_administrator[wpnid]
-
-        if (!(get_user_flags(client) & ADMIN_KICK) && administrator == 1) {
-            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ACCESS_DENIED_BUY")
-        } else if (!is_user_alive(client)) {
-            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "NOT_LIVE")
-        } else if (get_gametime() - round_time > get_cvar_num("nst_buy_time")) {
-            engclient_print(client, engprint_center, "%L", LANG_PLAYER, "BUY_TIME_END", get_cvar_num("nst_buy_time"));
-        } else if (HAS_WEAPON[client] == wpnid) {
-            new temp[256]
-            ArrayGetString(Pistol_Names, HAS_WEAPON[client], temp, charsmax(temp))
-
-            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "ALREADY_HAVE", temp)
-        } else if (get_cvar_num("nst_free") ? true : (wp_cost <= cs_get_user_money(client))) {
-            drop_all_secondary(client)
-
-            CURRENT_WEAPON[client] = wpnid
-            HAS_WEAPON[client] = wpnid
-            Give_Weapon(client, clip_max, ammo_max)
-            ShowHud_Ammo(client, ammo_max)
-
-            if (get_cvar_num("nst_free") == 0) {
-                cs_set_user_money(client, user_money + -wp_cost)
-            }
-        } else {
-            client_print(client, print_chat, "[NST Weapons] %L", LANG_PLAYER, "INSUFFICIENT_MONEY")
-        }
-    }
-}
-
 public ReBuy_Weapon(client) {
-    if (brokenConfig != 0) {
+    if (IsConfigBroken) {
         return PLUGIN_HANDLED
     }
 
-    new wpnid = CURRENT_WEAPON[client]
-    if (wpnid > 0) {
-        Buy_Weapon(client, wpnid)
+    new wpnId = CURRENT_WEAPON[client]
+    if (wpnId > 0) {
+        Buy_Weapon(client, wpnId)
     }
 
     return PLUGIN_HANDLED
 }
 
-public Weapon_Deploy_Post(entity) {
-    if (brokenConfig != 0) {
-        return PLUGIN_HANDLED
+public Cmd_BuyAmmo2(client) {
+    new wpnId, ammoCurr, defaultMaxAmmo
+
+    wpnId = get_user_weapon(client, _, ammoCurr)
+    defaultMaxAmmo = weaponsMaxBpAmmo[wpnId]
+
+    if (!wpnId) {
+        return PLUGIN_CONTINUE
     }
 
-    new client = get_pdata_cbase(entity, m_pPlayer, 4);
-    new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
-    new wpn_id = get_user_weapon(client, _, _)
-
-    if (!pev_valid(entity)) {
-        return HAM_IGNORED
+    if (!HasUserSecondary(client)) {
+        return PLUGIN_CONTINUE
     }
-
-    if (!is_user_alive(client)) {
-        return HAM_IGNORED
-    }
-
-    if (wpn_id != CHANGE_WEAPON || !HAS_WEAPON[client]) {
-        return HAM_IGNORED
-    }
-
-    set_weapon_timeidle(client, cvar_deploy[CURRENT_WEAPON])
-    set_player_nextattack(client, cvar_deploy[CURRENT_WEAPON])
-
-    return HAM_IGNORED
-}
-
-public Item_PostFrame_Pre(entity) {
-    if (brokenConfig != 0) {
-        return
-    }
-
-    static client
-    static inReload, clip_max, AmmoType, ammo_old, clip_old, Float:nextAttack, btnInfo
-    client = get_pdata_cbase(entity, m_pPlayer, 4)
 
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
-    new user_wpnid = get_user_weapon(client, _, _)
+    new buyzone = cs_get_user_buyzone(client)
 
-    if (user_wpnid != CHANGE_WEAPON || !HAS_WEAPON[client]) {
-        return
-    }
+    if ((IsConfigBroken || !CURRENT_WEAPON) &&
+        weaponsAmmoCost[wpnId] < cs_get_user_money(client) &&
+        ammoCurr < defaultMaxAmmo &&
+        buyzone) {
 
-    btnInfo = pev(client, pev_button)
-    clip_max = cvar_clip[CURRENT_WEAPON]
-    inReload = get_pdata_int(entity, m_fInReload, 4)
-    nextAttack = get_pdata_float(client, m_flNextAttack, 5)
-    AmmoType = m_rgAmmo_player_Slot0 + get_pdata_int(entity, m_iPrimaryAmmoType, 4)
-    ammo_old = get_pdata_int(client, AmmoType, 5)
-    clip_old = get_pdata_int(entity, m_iClip, 4)
+        cs_set_user_money(client, cs_get_user_money(client) + -weaponsAmmoCost[wpnId])
+        cs_set_user_bpammo(client, wpnId, ammoCurr + weaponsAmmo[wpnId])
 
-    if (inReload && nextAttack <= 0.0) {
-        new j = min(clip_max - clip_old, ammo_old)
-        set_pdata_int(entity, m_iClip, clip_old + j, 4)
-        set_pdata_int(client, AmmoType, ammo_old - j, 5)
-        set_pdata_int(entity, m_fInReload, 0, 4)
-    }
-
-    if (btnInfo & IN_RELOAD && !inReload) {
-        disableZoom[client] = 1
-
-        if (clip_old >= clip_max) {
-            set_pdata_float(client, m_flNextAttack, 0.0, 5)
-            set_pev(client, pev_button, btnInfo & ~IN_RELOAD)
-
-            //STOP RELOAD ANIMATION
-            switch (user_wpnid) {
-                case CSW_GLOCK18:  {
-                    set_weapon_anim(client, 0);
-                }
-                case CSW_USP:  {
-                    set_weapon_anim(client, (get_pdata_int(entity, m_fWeaponState, 4) & (1 << 0)) ? 0 : 8);
-                }
-                case CSW_DEAGLE, CSW_FIVESEVEN:  {
-                    set_weapon_anim(client, 0);
-                }
-                case CSW_P228:  {
-                    set_weapon_anim(client, 0);
-                }
-                case CSW_ELITE:  {
-                    set_weapon_anim(client, 0);
-                }
-            }
-        } else if (clip_old == weapons_max_clip[user_wpnid] && ammo_old) {
-            set_pdata_float(client, m_flNextAttack, weapons_clip_delay[user_wpnid], 5)
-            set_pdata_int(entity, m_fInReload, 1, 4)
-            set_pdata_float(entity, m_flTimeWeaponIdle, weapons_clip_delay[user_wpnid] + 0.5, 4)
-
-            //START RELOAD ANIMATION
-            switch (user_wpnid) {
-                case CSW_GLOCK18:  {
-                    set_weapon_anim(client, 7);
-                }
-                case CSW_USP:  {
-                    set_weapon_anim(client, (get_pdata_int(entity, m_fWeaponState, 4) & (1 << 0)) ? 5 : 13);
-                }
-                case CSW_DEAGLE, CSW_FIVESEVEN:  {
-                    set_weapon_anim(client, 4);
-                }
-                case CSW_P228:  {
-                    set_weapon_anim(client, 5);
-                }
-                case CSW_ELITE:  {
-                    set_weapon_anim(client, 14);
-                }
-            }
-        }
-    } else {
-        disableZoom[client] = 0
-    }
-
-    //SECONDARY ATTACK
-    if (cvar_secondary_type[CURRENT_WEAPON] != 0) {
-        set_pev(client, pev_button, btnInfo & ~IN_ATTACK2)
-    }
-
-    if (cvar_secondary_type[CURRENT_WEAPON] == 4 && (btnInfo & IN_ATTACK2) && (get_pdata_float(entity, m_flNextSecondaryAttack, 4) <= 0.0)) {
-        if (get_pdata_float(client, m_flNextAttack, 5) > 0.0) {
-            return
-        }
-
-        if (cs_get_weapon_ammo(entity) <= 0) {
-            return
-        }
-
-        new rand_elite[] = { 2, 8 }
-
-        if (user_wpnid == CSW_ELITE) {
-            set_weapon_anim(client, rand_elite[random_num(0, 1)])
-        } else if (user_wpnid == CSW_USP) {
-            set_weapon_anim(client, cs_get_weapon_silen(entity) ? 1 : 9)
+        if (cs_get_user_bpammo(client, wpnId) > defaultMaxAmmo) {
+            cs_set_user_bpammo(client, wpnId, defaultMaxAmmo)
+            ShowHud_Ammo(client, defaultMaxAmmo - ammoCurr)
         } else {
-            set_weapon_anim(client, fire_animations[user_wpnid])
+            ShowHud_Ammo(client, weaponsAmmo[wpnId])
         }
 
-        ExecuteHamB(Ham_Weapon_PrimaryAttack, entity)
-        emit_sound(client, CHAN_WEAPON, get_pistol_sound(HAS_WEAPON[client]), VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
-
-        if (cvar_speed[CURRENT_WEAPON] > 0.9) {
-            set_pdata_float(client, m_flNextAttack, cvar_speed[CURRENT_WEAPON] - 0.9, 4)
-        } else if (cvar_speed[CURRENT_WEAPON] > 0.2) {
-            set_pdata_float(client, m_flNextAttack, cvar_speed[CURRENT_WEAPON] - 0.38, 4)
-        } else {
-            set_pdata_float(client, m_flNextAttack, cvar_speed[CURRENT_WEAPON], 4)
-        }
-
-        set_pdata_int(entity, 64, 0, 4)
-        set_pdata_float(entity, m_flNextPrimaryAttack, cvar_speed[CURRENT_WEAPON] + 1, 4)
+        client_cmd(0, "spk sound/items/9mmclip1.wav")
+        return PLUGIN_HANDLED_MAIN
     }
+
+    if (get_cvar_num("nst_use_buyzone") ? buyzone : 1) {
+        new custom_ammo_max = cvar_ammo[CURRENT_WEAPON]
+
+        if (weaponsAmmoCost[wpnId] < cs_get_user_money(client) && ammoCurr < custom_ammo_max) {
+            cs_set_user_money(client, cs_get_user_money(client) + -weaponsAmmoCost[wpnId])
+            cs_set_user_bpammo(client, wpnId, ammoCurr + weaponsAmmo[wpnId])
+
+            if (cs_get_user_bpammo(client, wpnId) > custom_ammo_max) {
+                cs_set_user_bpammo(client, wpnId, custom_ammo_max)
+                ShowHud_Ammo(client, custom_ammo_max - ammoCurr)
+            } else {
+                ShowHud_Ammo(client, weaponsAmmo[wpnId])
+            }
+
+            client_cmd(0, "spk sound/items/9mmclip1.wav")
+        }
+    }
+
+    return PLUGIN_HANDLED
 }
 
 public Give_Weapon(client, clip, ammo) {
-    if (brokenConfig != 0) {
-        return PLUGIN_HANDLED
+    if (IsConfigBroken) {
+        return PLUGIN_CONTINUE
     }
 
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
 
     static weapon_name[32]
     get_weaponname(CHANGE_WEAPON, weapon_name, charsmax(weapon_name))
 
     give_item(client, weapon_name)
     cs_set_user_bpammo(client, CHANGE_WEAPON, ammo)
-    new entity = get_weapon_ent(client, CHANGE_WEAPON)
-    cs_set_weapon_ammo(entity, clip)
 
+    new entity = GetWeaponEnt(client, CHANGE_WEAPON)
+    if (!is_valid_ent(entity)) {
+        return PLUGIN_CONTINUE
+    }
+
+    cs_set_weapon_ammo(entity, clip)
     return PLUGIN_HANDLED
 }
 
 public Primary_Attack(entity) {
     new client = pev(entity, pev_owner)
-    pev(client, pev_punchangle, pushangle[client])
+    pev(client, pev_punchangle, PUSHANGLE[client])
 
-    return HAM_IGNORED
+    return HAM_HANDLED
 }
 
 public Primary_Attack_Post(entity) {
-    if (brokenConfig != 0) {
-        return PLUGIN_HANDLED
-    }
-
-    if (!is_valid_ent(entity)) {
+    if (IsConfigBroken || !is_valid_ent(entity)) {
         return HAM_IGNORED
     }
 
     static client
     client = pev(entity, pev_owner)
 
-    new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
-    new wpn_id = get_user_weapon(client, _, _)
+    new clipCurr, ammoCurr
 
-    if (wpn_id != CHANGE_WEAPON || !HAS_WEAPON[client]) {
+    new CURRENT_WEAPON = HAS_WEAPON[client]
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new wpnId = get_user_weapon(client, clipCurr, ammoCurr)
+
+    if (wpnId != CHANGE_WEAPON || !CURRENT_WEAPON) {
         return HAM_IGNORED
     }
 
-    new old_ammo, blank
-    get_user_ammo(client, CHANGE_WEAPON, old_ammo, blank)
-
-    if (old_ammo != 0) {
-        set_pdata_float(entity, m_flNextPrimaryAttack, get_pdata_float(entity, 46, 4) * cvar_speed[CURRENT_WEAPON], 4)
+    if (!cs_get_weapon_burst(entity)) {
+        set_pdata_float(entity, m_flNextPrimaryAttack, (get_pdata_float(entity, m_flNextPrimaryAttack, 4) * cvar_speed[CURRENT_WEAPON]), 4)
     }
 
-    new Float:push[3]
+    new Float: push[3]
     pev(client, pev_punchangle, push)
-    xs_vec_sub(push, pushangle[client], push)
+    xs_vec_sub(push, PUSHANGLE[client], push)
 
-    xs_vec_mul_scalar(push, inZoom2[client] ? cvar_sightrecoil[CURRENT_WEAPON] : cvar_recoil[CURRENT_WEAPON], push)
-    xs_vec_add(push, pushangle[client], push)
+    xs_vec_mul_scalar(push, IS_INIRONSIGHT[client] ? cvar_sightrecoil[CURRENT_WEAPON] : cvar_recoil[CURRENT_WEAPON], push)
+    xs_vec_add(push, PUSHANGLE[client], push)
     set_pev(client, pev_punchangle, push)
 
-    Set_BitVar(IN_EMIT_ATTACK, client)
+    if (cvar_reload[CURRENT_WEAPON] == 0 &&
+        !IS_INRELOAD[client] &&
+        ammoCurr != 0 &&
+        clipCurr != 0) {
+        cs_set_user_bpammo(client, wpnId, ammoCurr - 1)
+        cs_set_weapon_ammo(entity, SAVED_CLIP[client])
+    }
 
-    return FMRES_SUPERCEDE
+    return HAM_HANDLED
 }
 
-public Current_Weapon(client) {
-    if (brokenConfig != 0) {
-        return PLUGIN_HANDLED
+public Weapon_Deploy_Post(entity) {
+    if (IsConfigBroken || !pev_valid(entity)) {
+        return HAM_IGNORED
+    }
+
+    static client
+    client = get_pdata_cbase(entity, m_pPlayer, 4)
+
+    if (!is_user_alive(client)) {
+        return HAM_IGNORED
     }
 
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new wpnId = get_user_weapon(client)
 
-    new clip, ammo
-    new wpn_id = get_user_weapon(client, clip, ammo)
-
-    if (wpn_id == CHANGE_WEAPON && HAS_WEAPON[client]) {
-        entity_set_float(client, EV_FL_maxspeed, 240.0 + cvar_fastrun[CURRENT_WEAPON])
-
-        new v_model[64], p_model[64], sight_model[64]
-        formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
-        formatex(p_model, charsmax(p_model), "models/%s", parseConfig(CURRENT_WEAPON, "p_model"))
-        formatex(sight_model, charsmax(sight_model), "models/%s", parseConfig(CURRENT_WEAPON, "sight_model"))
-
-        if (!inZoom2[client]) {
-            set_pev(client, pev_viewmodel2, v_model)
-        } else {
-            set_pev(client, pev_viewmodel2, sight_model)
-        }
-
-        set_pev(client, pev_weaponmodel2, p_model)
-    } else {
-        inZoom2[client] = 0
+    if (wpnId != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        return HAM_IGNORED
     }
 
-    if (SAVE_CLIP[client] == 0 && is_valid_ent(get_weapon_ent(client, CHANGE_WEAPON))) {
-        SAVED_CLIP[client] = cs_get_weapon_ammo(get_weapon_ent(client, CHANGE_WEAPON))
-        SAVE_CLIP[client] = 1
+    SetWeaponTime(client, cvar_deploy[CURRENT_WEAPON])
+    SetWeaponNextAttack(client, cvar_deploy[CURRENT_WEAPON])
+
+    return HAM_HANDLED
+}
+
+public Pistols_PostFrame_Pre(entity) {
+    if (IsConfigBroken) {
+        return HAM_IGNORED
     }
 
-    if (wpn_id == CHANGE_WEAPON && HAS_WEAPON[client] && pev(client, pev_oldbuttons) & IN_ATTACK) {
-        if (Get_BitVar(IN_EMIT_ATTACK, client)) {
-            emit_sound(client, CHAN_WEAPON, get_pistol_sound(HAS_WEAPON[client]), VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
-            UnSet_BitVar(IN_EMIT_ATTACK, client)
+    static client
+    client = get_pdata_cbase(entity, m_pPlayer, 4)
+
+    new CURRENT_WEAPON = HAS_WEAPON[client]
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new user_wpnid = get_user_weapon(client)
+
+    if (user_wpnid != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        return HAM_IGNORED
+    }
+
+    static btnInfo, inReload, clipMax, ammoType, ammoCurr, clipCurr, Float: nextAttack, Float: nextPrimaryAttack
+    btnInfo = pev(client, pev_button)
+    clipMax = cvar_clip[CURRENT_WEAPON]
+    inReload = get_pdata_int(entity, m_fInReload, 4)
+    nextAttack = get_pdata_float(client, m_flNextAttack, 5)
+    nextPrimaryAttack = get_pdata_float(entity, m_flNextPrimaryAttack, 4)
+    ammoType = m_rgPlayerAmmo_Slot0 + get_pdata_int(entity, m_iPrimaryammoType, 4)
+    ammoCurr = get_pdata_int(client, ammoType, 5)
+    clipCurr = get_pdata_int(entity, m_iClip, 4)
+
+    if (inReload && nextAttack <= 0.0) {
+        new j = min(clipMax - clipCurr, ammoCurr)
+        set_pdata_int(entity, m_iClip, clipCurr + j, 4)
+        set_pdata_int(client, ammoType, ammoCurr - j, 5)
+        set_pdata_int(entity, m_fInReload, 0, 4)
+    }
+
+    //SECONDARY ATTACK
+    IS_INRELOAD[client] = (btnInfo & IN_RELOAD && !inReload)
+    if (cvar_secondary_type[CURRENT_WEAPON] != 0) {
+        set_pev(client, pev_button, btnInfo & ~IN_ATTACK2)
+    }
+
+    if (cvar_secondary_type[CURRENT_WEAPON] == 4 && (btnInfo & IN_ATTACK2) && (get_pdata_float(entity, m_flNextSecondaryAttack, 4) <= 0.0)) {
+        if (get_pdata_float(client, m_flNextAttack, 5) > 0.0) {
+            return HAM_IGNORED
         }
 
-        if (cvar_reload[CURRENT_WEAPON] == 0 && cs_get_user_bpammo(client, wpn_id) != 0) {
-            cs_set_user_bpammo(client, wpn_id, cs_get_user_bpammo(client, wpn_id) - 1)
-            cs_set_weapon_ammo(get_weapon_ent(client, CHANGE_WEAPON), SAVED_CLIP[client])
+        if (cs_get_weapon_ammo(entity) <= 0) {
+            return HAM_IGNORED
         }
-    } else {
-        SAVE_CLIP[client] = 0
+
+        SetWeaponAnim(client, GetFireAnimation(user_wpnid, cs_get_weapon_silen(entity)))
+        ExecuteHamB(Ham_Weapon_PrimaryAttack, entity)
+        emit_sound(client, CHAN_WEAPON, GetCustomSecondarySound(CURRENT_WEAPON), VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+
+        set_pdata_int(entity, 64, 0, 4)
+        set_pdata_float(entity, m_flNextPrimaryAttack, nextPrimaryAttack * cvar_speed[CURRENT_WEAPON], 4)
+    }
+
+    return HAM_HANDLED
+}
+
+public Pistols_Reload_Post(entity) {
+    static client
+    client = get_pdata_cbase(entity, m_pPlayer, 4)
+
+    new CURRENT_WEAPON = HAS_WEAPON[client]
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new user_wpnid = get_user_weapon(client)
+
+    if (user_wpnid != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        return HAM_IGNORED
+    }
+
+    static clipCurr, clipMax, btnInfo, ammoCurr, ammoType, inReload, weaponMode
+    btnInfo = pev(client, pev_button)
+    clipCurr = get_pdata_int(entity, m_iClip, 4)
+    clipMax = cvar_clip[CURRENT_WEAPON]
+    inReload = get_pdata_int(entity, m_fInReload, 4)
+    ammoType = m_rgPlayerAmmo_Slot0 + get_pdata_int(entity, m_iPrimaryammoType, 4)
+    ammoCurr = get_pdata_int(client, ammoType, 5)
+    weaponMode = get_pdata_int(entity, m_fWeaponState, 4)
+
+    if (inReload) {
+        if (clipCurr >= clipMax) {
+            set_pdata_float(client, m_flNextAttack, 0.0, 5)
+            set_pev(client, pev_button, btnInfo & ~IN_RELOAD)
+
+            //STOP RELOAD ANIMATION
+            switch (user_wpnid) {
+                case CSW_GLOCK18:  {
+                    SetWeaponAnim(client, 0)
+                }
+                case CSW_USP:  {
+                    SetWeaponAnim(client, weaponMode ? 0 : 8)
+                }
+                case CSW_DEAGLE, CSW_FIVESEVEN:  {
+                    SetWeaponAnim(client, 0)
+                }
+                case CSW_P228:  {
+                    SetWeaponAnim(client, 0)
+                }
+                case CSW_ELITE:  {
+                    SetWeaponAnim(client, 0)
+                }
+            }
+        } else if (clipCurr == weaponsMaxAmmo[user_wpnid] && ammoCurr) {
+            set_pdata_float(client, m_flNextAttack, weaponsReloadDelay[user_wpnid], 5)
+            set_pdata_int(entity, m_fInReload, 1, 4)
+
+            //START RELOAD ANIMATION
+            switch (user_wpnid) {
+                case CSW_GLOCK18:  {
+                    SetWeaponAnim(client, 7)
+                }
+                case CSW_USP:  {
+                    SetWeaponAnim(client, weaponMode ? 5 : 13)
+                }
+                case CSW_DEAGLE, CSW_FIVESEVEN:  {
+                    SetWeaponAnim(client, 4)
+                }
+                case CSW_P228:  {
+                    SetWeaponAnim(client, 5)
+                }
+                case CSW_ELITE:  {
+                    SetWeaponAnim(client, 14)
+                }
+            }
+        }
+    }
+
+    return HAM_HANDLED
+}
+
+public Event_CurrentWeapon(client) {
+    if (IsConfigBroken) {
+        return PLUGIN_CONTINUE
+    }
+
+    new clipCurr, ammoCurr
+
+    new CURRENT_WEAPON = HAS_WEAPON[client]
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new user_wpnid = get_user_weapon(client, clipCurr, ammoCurr)
+
+    if (user_wpnid != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        IS_INIRONSIGHT[client] = 0
+        SAVED_CLIP[client] = 0
+        return PLUGIN_CONTINUE
+    }
+
+    entity_set_float(client, EV_FL_maxspeed, 240.0 + cvar_fastrun[CURRENT_WEAPON])
+
+    new v_model[64], p_model[64], sight_model[64]
+    formatex(v_model, charsmax(v_model), "models/%s", ParseConfig(CURRENT_WEAPON, "v_model"))
+    formatex(p_model, charsmax(p_model), "models/%s", ParseConfig(CURRENT_WEAPON, "p_model"))
+    formatex(sight_model, charsmax(sight_model), "models/%s", ParseConfig(CURRENT_WEAPON, "sight_model"))
+
+    set_pev(client, pev_viewmodel2, IS_INIRONSIGHT[client] ? sight_model : v_model)
+    set_pev(client, pev_weaponmodel2, p_model)
+
+    new weaponEntity = GetWeaponEnt(client, CHANGE_WEAPON)
+
+    if (!is_valid_ent(weaponEntity)) {
+        return PLUGIN_HANDLED
+    }
+
+    if (cvar_secondary_type[CURRENT_WEAPON]) {
+        message_begin(MSG_ONE_UNRELIABLE, get_user_msgid("Crosshair"), _, client)
+        write_byte(0)
+        message_end()
+    }
+
+    if (!SAVED_CLIP[client] || ammoCurr == 0) {
+        SAVED_CLIP[client] = clipCurr
     }
 
     return PLUGIN_HANDLED
 }
 
-public OnPlayerTouchWeaponBox(entity, client) {
-    if (brokenConfig != 0) {
-        return
+public Ham_PlayerTouchWeaponBox(entity, client) {
+    if (IsConfigBroken ||
+        !is_valid_ent(entity) ||
+        get_entity_flags(entity) != FL_ONGROUND ||
+        !is_user_alive(client) ||
+        HasUserSecondary(client)) {
+        return HAM_IGNORED
     }
 
-    if (!is_valid_ent(entity)) {
-        return
-    }
-    
-    if (get_entity_flags(entity) != FL_ONGROUND)
-    {
-        
-    }
-
-    if (!is_user_alive(client))
-    {
-        return
-    }
-
-    if (user_has_secondary(client))
-    {
-        return
-    }
-
-    for (new i = 1; i < ArraySize(Pistol_Numbers); i++) {
-        if (str_to_num(parseConfig(i, "wpn_id")) <= 0) {
-            break;
+    for (new i = 1; i < ArraySize(Pistol_Names); i++) {
+        if (str_to_num(ParseConfig(i, "wpn_id")) <= 0) {
+            break
         }
 
-        new classname[32]
-        entity_get_string(entity, EV_SZ_classname, classname, 63)
-        if (equal(classname, class_weapons[i]) && (client > 0 && client < MAX_PLAYER)) {
+        new class_name[64]
+        entity_get_string(entity, EV_SZ_classname, class_name, charsmax(class_name))
+
+        if (equal(class_name, class_weapons[i]) && (client > 0 && client < MAX_PLAYER)) {
             HAS_WEAPON[client] = i
             break
         }
     }
+
+    return HAM_HANDLED
 }
 
-public fw_TraceAttack(entity, attacker, Float:flDamage, Float:fDir[3], ptr, iDamageType) {
-    if (brokenConfig != 0) {
-        return
+public Ham_TraceAttack_Post(entity, attacker, Float: flDamage, Float: fDir[3], ptr, iDamageType) {
+    if (IsConfigBroken || !is_user_alive(attacker)) {
+        return HAM_IGNORED
     }
-
-    if (!is_user_alive(attacker)) {
-        return
-    }
-
-    new clip, ammo
-    new const GUNSHOT_DECALS[] = { 41, 42, 43, 44, 45 }
 
     new CURRENT_WEAPON = HAS_WEAPON[attacker]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
-    new wpn_id = get_user_weapon(attacker, clip, ammo)
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new wpnId = get_user_weapon(attacker)
 
-    if (wpn_id != CHANGE_WEAPON || !HAS_WEAPON[attacker]) {
-        return
+    if (wpnId != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        return HAM_IGNORED
     }
 
-    if (cvar_secondary_type[CURRENT_WEAPON] == 4) {
-        static Float: flEnd[3], Float: vecPlane[3];
-        get_tr2(ptr, TR_vecEndPos, flEnd);
-        get_tr2(ptr, TR_vecPlaneNormal, vecPlane);
+    //For create default bullet trace
+    static Float: flEnd[3], Float: vecPlane[3]
+    get_tr2(ptr, TR_vecEndPos, flEnd)
+    get_tr2(ptr, TR_vecPlaneNormal, vecPlane)
 
-        static LoopTime, Decal;
-        Decal = random_num(41, 45);
-        LoopTime = flDamage > 100.0 ? 2 : 1;
+    static LoopTime, Decal
+    Decal = random_num(41, 45)
+    LoopTime = flDamage > 100.0 ? 2 : 1
 
-        for (new i = 0; i < LoopTime; i++) {
-            message_begin(MSG_BROADCAST, SVC_TEMPENTITY);
-            write_byte(TE_WORLDDECAL);
-            engfunc(EngFunc_WriteCoord, flEnd[0]);
-            engfunc(EngFunc_WriteCoord, flEnd[1]);
-            engfunc(EngFunc_WriteCoord, flEnd[2]);
-            write_byte(Decal);
-            message_end();
+    for (new i = 0; i < LoopTime; i++) {
+        message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+        write_byte(TE_WORLDDECAL)
+        engfunc(EngFunc_WriteCoord, flEnd[0])
+        engfunc(EngFunc_WriteCoord, flEnd[1])
+        engfunc(EngFunc_WriteCoord, flEnd[2])
+        write_byte(Decal)
+        message_end()
 
-            message_begin(MSG_BROADCAST, SVC_TEMPENTITY);
-            write_byte(TE_GUNSHOTDECAL);
-            engfunc(EngFunc_WriteCoord, flEnd[0]);
-            engfunc(EngFunc_WriteCoord, flEnd[1]);
-            engfunc(EngFunc_WriteCoord, flEnd[2]);
-            write_short(attacker);
-            write_byte(Decal);
-            message_end();
-        }
+        message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+        write_byte(TE_GUNSHOTDECAL)
+        engfunc(EngFunc_WriteCoord, flEnd[0])
+        engfunc(EngFunc_WriteCoord, flEnd[1])
+        engfunc(EngFunc_WriteCoord, flEnd[2])
+        write_short(attacker)
+        write_byte(Decal)
+        message_end()
     }
 
     if (cvar_tracer_type[CURRENT_WEAPON] == 0) {
-        return
+        return HAM_HANDLED
     }
 
-    new r_color[64], g_color[64], b_color[64], width[64], right[64]
-    strtok(cvar_tracer[CURRENT_WEAPON], r_color, 64, right, 64, ',')
-    strtok(right, g_color, 64, right, 64, ',')
-    strtok(right, b_color, 64, width, 64, ',')
+    new const GUNSHOT_DECALS[] = { 41, 42, 43, 44, 45 }
+
+    new field[64], field2[64], field3[64], field4[64], buffer[64]
+    strtok(cvar_tracer[CURRENT_WEAPON], field, charsmax(field), buffer, charsmax(buffer), ',')
+    strtok(buffer, field2, charsmax(field2), buffer, charsmax(buffer), ',')
+    strtok(buffer, field3, charsmax(field3), field4, charsmax(field4), ',')
+
+    new r_color = str_to_num(field)
+    new g_color = str_to_num(field2)
+    new b_color = str_to_num(field3)
+    new thickness = str_to_num(field4)
 
     if (cvar_tracer_type[CURRENT_WEAPON] == 1) {
-        new vec1[3], vec2[3]
+        static vec1[3], vec2[3]
+
         get_user_origin(attacker, vec1, 4)
         get_user_origin(attacker, vec2, 1)
 
@@ -1358,18 +1252,53 @@ public fw_TraceAttack(entity, attacker, Float:flDamage, Float:fDir[3], ptr, iDam
         write_byte(1)
         write_byte(5)
         write_byte(2)
-        write_byte(str_to_num(width))
+        write_byte(thickness)
         write_byte(0)
-        write_byte(str_to_num(r_color))
-        write_byte(str_to_num(g_color))
-        write_byte(str_to_num(b_color))
+        write_byte(r_color)
+        write_byte(g_color)
+        write_byte(b_color)
         write_byte(200)
         write_byte(0)
         message_end()
     } else if (cvar_tracer_type[CURRENT_WEAPON] == 2) {
-        static Float:flEnd[3]
-        get_tr2(ptr, TR_vecEndPos, flEnd)
+        if (entity) {
+            message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+            write_byte(TE_DECAL)
+            engfunc(EngFunc_WriteCoord, flEnd[0])
+            engfunc(EngFunc_WriteCoord, flEnd[1])
+            engfunc(EngFunc_WriteCoord, flEnd[2])
+            write_byte(GUNSHOT_DECALS[random_num(0, sizeof GUNSHOT_DECALS - 1)])
+            write_short(entity)
+            message_end()
+        } else {
+            message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+            write_byte(TE_WORLDDECAL)
+            engfunc(EngFunc_WriteCoord, flEnd[0])
+            engfunc(EngFunc_WriteCoord, flEnd[1])
+            engfunc(EngFunc_WriteCoord, flEnd[2])
+            write_byte(GUNSHOT_DECALS[random_num(0, sizeof GUNSHOT_DECALS - 1)])
+            message_end()
+        }
 
+        message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+        write_byte(TE_BEAMENTPOINT)
+        write_short(attacker | 0x1000)
+        engfunc(EngFunc_WriteCoord, flEnd[0])
+        engfunc(EngFunc_WriteCoord, flEnd[1])
+        engfunc(EngFunc_WriteCoord, flEnd[2])
+        write_short(cvar_tracer_sprite[CURRENT_WEAPON])
+        write_byte(1)
+        write_byte(5)
+        write_byte(2)
+        write_byte(thickness)
+        write_byte(0)
+        write_byte(r_color)
+        write_byte(g_color)
+        write_byte(b_color)
+        write_byte(255)
+        write_byte(0)
+        message_end()
+    } else if (cvar_tracer_type[CURRENT_WEAPON] == 3) {
         if (entity) {
             message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
             write_byte(TE_DECAL)
@@ -1386,80 +1315,69 @@ public fw_TraceAttack(entity, attacker, Float:flDamage, Float:fDir[3], ptr, iDam
             engfunc(EngFunc_WriteCoord, flEnd[1] + 10)
             engfunc(EngFunc_WriteCoord, flEnd[2] + 10)
             write_short(cvar_tracer_sprite[CURRENT_WEAPON])
-            write_byte(str_to_num(width)) //Height
-            write_byte(200) //Bright
+            write_byte(thickness)
+            write_byte(200)
             message_end()
         }
-    } else if (cvar_tracer_type[CURRENT_WEAPON] == 3) {
-        static Float:end[3]
-        get_tr2(ptr, TR_vecEndPos, end)
-
-        if (entity) {
-            message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
-            write_byte(TE_DECAL)
-            engfunc(EngFunc_WriteCoord, end[0])
-            engfunc(EngFunc_WriteCoord, end[1])
-            engfunc(EngFunc_WriteCoord, end[2])
-            write_byte(GUNSHOT_DECALS[random_num(0, sizeof GUNSHOT_DECALS - 1)])
-            write_short(entity)
-            message_end()
-        } else {
-            message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
-            write_byte(TE_WORLDDECAL)
-            engfunc(EngFunc_WriteCoord, end[0])
-            engfunc(EngFunc_WriteCoord, end[1])
-            engfunc(EngFunc_WriteCoord, end[2])
-            write_byte(GUNSHOT_DECALS[random_num(0, sizeof GUNSHOT_DECALS - 1)])
-            message_end()
-        }
-
-        message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
-        write_byte(TE_BEAMENTPOINT)
-        write_short(attacker | 0x1000)
-        engfunc(EngFunc_WriteCoord, end[0])
-        engfunc(EngFunc_WriteCoord, end[1])
-        engfunc(EngFunc_WriteCoord, end[2])
-        write_short(cvar_tracer_sprite[CURRENT_WEAPON])
-        write_byte(1)
-        write_byte(5)
-        write_byte(2)
-        write_byte(str_to_num(width))
-        write_byte(0)
-        write_byte(str_to_num(r_color))
-        write_byte(str_to_num(g_color))
-        write_byte(str_to_num(b_color))
-        write_byte(255)
-        write_byte(0)
-        message_end()
     }
+
+    return HAM_HANDLED
+}
+
+public Ham_TakeDamage_Pre(victim, inflictor, attacker, Float: damage) {
+    if (IsConfigBroken || !is_user_alive(attacker)) {
+        return HAM_IGNORED
+    }
+
+    new CURRENT_WEAPON = HAS_WEAPON[attacker]
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new wpnId = get_user_weapon(attacker)
+
+    if (wpnId != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        return HAM_IGNORED
+    }
+
+    SetHamParamFloat(4, damage * cvar_dmgmultiplier[CURRENT_WEAPON])
+    return HAM_HANDLED
+}
+
+public Ham_BotSpawn_Post(client) {
+    if (IsConfigBroken ||
+        !get_cvar_num("nst_give_bot") ||
+        !is_user_alive(client)) {
+        return HAM_IGNORED
+    }
+
+    set_task(random_float(1.0, 4.0), "Task_BotWeapons", client)
+    return HAM_HANDLED
 }
 
 public fw_WorldModel(entity, model[]) {
-    if (brokenConfig != 0) {
-        return PLUGIN_HANDLED
+    if (IsConfigBroken || !is_valid_ent(entity)) {
+        return FMRES_IGNORED
     }
 
     static client
     client = pev(entity, pev_owner)
 
-    new Classname[64], w_model[64]
     new CURRENT_WEAPON = HAS_WEAPON[client]
 
-    pev(entity, pev_classname, Classname, sizeof(Classname))
-
-    if (!pev_valid(entity)) {
+    if (!CURRENT_WEAPON) {
         return FMRES_IGNORED
     }
+
+    new Classname[64], w_model[64]
+    pev(entity, pev_classname, Classname, sizeof(Classname))
 
     if (!equal(Classname, "weaponbox")) {
         return FMRES_IGNORED
     }
 
-    for (new i = 0; i < sizeof(weapons_old_world_models); i++) {
-        if (equal(model, weapons_old_world_models[i]) && HAS_WEAPON[client]) {
+    for (new i = 0; i < sizeof(secondaryWeaponsWorld); i++) {
+        if (equal(model, secondaryWeaponsWorld[i]) && CURRENT_WEAPON) {
             entity_set_string(entity, EV_SZ_classname, class_weapons[CURRENT_WEAPON])
 
-            formatex(w_model, charsmax(w_model), "models/%s", parseConfig(CURRENT_WEAPON, "w_model"))
+            formatex(w_model, charsmax(w_model), "models/%s", ParseConfig(CURRENT_WEAPON, "w_model"))
             engfunc(EngFunc_SetModel, entity, w_model)
             HAS_WEAPON[client] = 0
 
@@ -1467,216 +1385,103 @@ public fw_WorldModel(entity, model[]) {
         }
     }
 
-    return PLUGIN_CONTINUE
+    return FMRES_HANDLED
 }
 
 public fw_CmdStart(client, uc_handle, seed) {
-    if (brokenConfig != 0) {
-        return
+    if (IsConfigBroken || !is_user_alive(client)) {
+        return FMRES_IGNORED
     }
 
-    if (!is_user_alive(client)) {
-        return
-    }
+    new clipCurr
 
     new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
-    new wpn_id = get_user_weapon(client, _, _)
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new wpnId = get_user_weapon(client, clipCurr)
 
-    if (wpn_id != CHANGE_WEAPON || !HAS_WEAPON[client]) {
-        return
+    if (wpnId != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        IS_INIRONSIGHT[client] = 0
+        return FMRES_IGNORED
     }
-
-    static currentBtn;
-    currentBtn = get_uc(uc_handle, UC_Buttons)
-    static oldButton;
-    oldButton = pev(client, pev_oldbuttons)
 
     if (!cvar_secondary_type[CURRENT_WEAPON]) {
-        inZoom[client] = 0
-        inZoom2[client] = 0
-
-        return
+        IS_INIRONSIGHT[client] = 0
+        return FMRES_IGNORED
     }
 
-    if ((currentBtn & IN_RELOAD) && !(oldButton & IN_RELOAD)) {
-        set_pdata_int(client, m_iFOV, 90, 5)
+    static currentBtn, oldButton
+    currentBtn = get_uc(uc_handle, UC_Buttons)
+    oldButton = pev(client, pev_oldbuttons)
+
+    if ((currentBtn & IN_RELOAD) || clipCurr == 0) {
         cs_set_user_zoom(client, CS_SET_NO_ZOOM, 1)
-        ResetFov(client)
+        IS_INIRONSIGHT[client] = 0
+    } else if ((currentBtn & IN_ATTACK2) && !(oldButton & IN_ATTACK2) && !IS_INRELOAD[client]) {
+        client_cmd(0, "spk weapons/zoom.wav")
 
-        new v_model[64]
-        formatex(v_model, charsmax(v_model), "models/%s", parseConfig(CURRENT_WEAPON, "v_model"))
-        set_pev(client, pev_viewmodel2, v_model)
-
-        inZoom[client] = 0
-        inZoom2[client] = 0
-    } else {
-        if ((currentBtn & IN_ATTACK2) && !(oldButton & IN_ATTACK2)) {
-            if (cvar_secondary_type[CURRENT_WEAPON] == 1 && !disableZoom[client]) {
-                set_weapon_timeidle(client, 0.3)
+        switch (cvar_secondary_type[CURRENT_WEAPON]) {
+            case 1 :  {
+                SetWeaponTime(client, 0.3)
                 set_pdata_float(client, m_flNextAttack, 0.3, 5)
-                set_player_nextattack(client, 0.66)
-
-                if (cs_get_user_zoom(client) == 1) {
-                    cs_set_user_zoom(client, CS_SET_AUGSG552_ZOOM, 1)
-                    if (get_cvar_num("nst_zoom_spk")) {
-                        client_cmd(0, "spk weapons/zoom.wav")
-                    }
-                } else {
-                    cs_set_user_zoom(client, CS_SET_NO_ZOOM, 1)
-                    if (get_cvar_num("nst_zoom_spk")) {
-                        client_cmd(0, "spk weapons/zoom.wav")
-                    }
-                }
-            } else if (cvar_secondary_type[CURRENT_WEAPON] == 2 && !disableZoom[client]) {
-                set_weapon_timeidle(client, 0.3)
+                SetWeaponNextAttack(client, 0.66)
+                cs_set_user_zoom(client, cs_get_user_zoom(client) == 1 ? CS_SET_AUGSG552_ZOOM : CS_SET_NO_ZOOM, 1)
+            }
+            case 2 :  {
+                SetWeaponTime(client, 0.3)
                 set_pdata_float(client, m_flNextAttack, 0.3, 5)
-                set_player_nextattack(client, 0.66)
-
-                if (!inZoom[client]) {
-                    inZoom[client] = 1
-
-                    set_pdata_int(client, m_iFOV, 35, 5);
-                    if (get_cvar_num("nst_zoom_spk")) {
-                        client_cmd(0, "spk weapons/zoom.wav")
-                    }
-                } else {
-                    inZoom[client] = 0
-
-                    set_pdata_int(client, m_iFOV, 90, 5);
-                    if (get_cvar_num("nst_zoom_spk")) {
-                        client_cmd(0, "spk weapons/zoom.wav")
-                    }
-                }
-            } else if (cvar_secondary_type[CURRENT_WEAPON] == 3 && !disableZoom[client]) {
-                set_weapon_timeidle(client, 0.3)
+                SetWeaponNextAttack(client, 0.66)
+                cs_set_user_zoom(client, cs_get_user_zoom(client) == 1 ? CS_SET_FIRST_ZOOM : CS_SET_NO_ZOOM, 1)
+            }
+            case 3 :  {
+                SetWeaponTime(client, 0.3)
                 set_pdata_float(client, m_flNextAttack, 0.3, 5)
-                set_player_nextattack(client, 0.66)
-
-                if (!inZoom2[client]) {
-                    inZoom2[client] = 1
-
-                    new sight_model[999]
-                    formatex(sight_model, charsmax(sight_model), "models/%s", parseConfig(CURRENT_WEAPON, "sight_model"))
-                    set_pev(client, pev_viewmodel2, sight_model)
-                    SetFov(client, 70)
-
-                    if (get_cvar_num("nst_zoom_spk")) {
-                        client_cmd(0, "spk weapons/zoom.wav")
-                    }
-                } else {
-                    inZoom2[client] = 0
-
-                    ResetFov(client)
-
-                    if (get_cvar_num("nst_zoom_spk")) {
-                        client_cmd(0, "spk weapons/zoom.wav")
-                    }
-                }
+                SetWeaponNextAttack(client, 0.66)
+                cs_set_user_zoom(client, cs_get_user_zoom(client) == 1 ? CS_SET_AUGSG552_ZOOM : CS_SET_NO_ZOOM, 1)
+                IS_INIRONSIGHT[client] = IS_INIRONSIGHT[client] ? 0 : 1
             }
         }
     }
+
+    return FMRES_HANDLED
 }
 
-public fw_TakeDamage(victim, inflictor, attacker, Float:damage) {
-    if (brokenConfig != 0) {
-        return
+public fw_UpdateClientData_Post(client, sendweapons, cd_handle) {
+    if (IsConfigBroken || !is_user_connected(client)) {
+        return FMRES_IGNORED
     }
 
-    if (!is_valid_ent(attacker)) {
-        return
+    new CURRENT_WEAPON = HAS_WEAPON[client]
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new wpnId = get_user_weapon(client)
+
+    if (wpnId != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        return FMRES_IGNORED
     }
 
-    new CURRENT_WEAPON = HAS_WEAPON[attacker]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
-    new wpn_id = get_user_weapon(attacker, _, _)
-
-    if (wpn_id != CHANGE_WEAPON || !HAS_WEAPON[attacker]) {
-        return
-    }
-
-    SetHamParamFloat(4, damage * cvar_dmgmultiplier[CURRENT_WEAPON])
+    set_cd(cd_handle, CD_flNextAttack, get_gametime() + 0.001)
+    return FMRES_HANDLED
 }
 
-public fw_PlayerSpawn_Post(id) {
-    if (brokenConfig != 0) {
-        return
+public fw_PlaybackEvent(flags, invoker, eventid, Float: delay, Float: origin[3], Float: angles[3], Float: fparam1, Float: fparam2, iParam1, iParam2, bParam1, bParam2) {
+    if (IsConfigBroken || !is_user_connected(invoker)) {
+        return FMRES_IGNORED
     }
 
-    if (!is_valid_ent(id)) {
-        return
+    new CURRENT_WEAPON = HAS_WEAPON[invoker]
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new wpnId = get_user_weapon(invoker)
+
+    if (wpnId != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        return FMRES_IGNORED
     }
 
-    if (!is_user_alive(id)) {
-        return
-    }
+    new weaponEntity = GetWeaponEnt(invoker, CHANGE_WEAPON)
 
-    if (!is_user_bot(id)) {
-        return
-    }
+    engfunc(EngFunc_PlaybackEvent, flags | FEV_HOSTONLY, invoker, eventid, delay, origin, angles, fparam1, fparam2, iParam1, iParam2, bParam1, bParam2)
+    emit_sound(invoker, CHAN_WEAPON, GetCustomSecondarySound(CURRENT_WEAPON), VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+    SetWeaponAnim(invoker, GetFireAnimation(wpnId, cs_get_weapon_silen(weaponEntity)))
 
-    new Float: time_give = random_float(1.0, 4.0)
-    if (task_exists(id + TASK_GIVEWPNBOT)) {
-        remove_task(id + TASK_GIVEWPNBOT)
-    }
-    set_task(time_give, "nst_bot_weapons", id + TASK_GIVEWPNBOT)
-}
-
-public event_commencing() {
-    commencing = 1
-}
-
-public event_damage(client) {
-    if (brokenConfig != 0) {
-        return PLUGIN_CONTINUE
-    }
-
-    if (!is_valid_ent(client)) {
-        return PLUGIN_CONTINUE
-    }
-
-    new weapon, attacker = get_user_attacker(client, weapon)
-
-    if (!is_user_alive(attacker)) {
-        return PLUGIN_CONTINUE
-    }
-
-    new CURRENT_WEAPON = HAS_WEAPON[attacker]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
-
-    if (weapon != CHANGE_WEAPON || !HAS_WEAPON[attacker]) {
-        return PLUGIN_CONTINUE
-    }
-
-    new Float:vector[3]
-    new Float:old_velocity[3]
-    get_user_velocity(client, old_velocity)
-    create_velocity_vector(client, attacker, vector, cvar_knockback[CURRENT_WEAPON])
-    vector[0] += old_velocity[0]
-    vector[1] += old_velocity[1]
-    set_user_velocity(client, vector)
-
-    return PLUGIN_CONTINUE;
-}
-
-public event_death() {
-    new client = read_data(2)
-
-    if (HAS_WEAPON[client]) {
-        HAS_WEAPON[client] = 0
-        return PLUGIN_HANDLED
-    }
-
-    return PLUGIN_CONTINUE
-}
-
-public event_start_freezetime() {
-    remove_modded()
-    commencing = 0
-}
-
-public event_new_round() {
-    round_time = get_gametime()
+    return FMRES_SUPERCEDE
 }
 
 public client_connect(client) {
@@ -1687,80 +1492,109 @@ public client_disconnect(client) {
     HAS_WEAPON[client] = 0
 }
 
-public client_putinserver(client) {
-    if (brokenConfig != 0) {
-        return
-    }
-
-    if (!is_user_bot(client)) {
-        return
-    }
-
-    set_task(0.1, "Do_RegisterHam_Bot", client)
+public Event_Commencing() {
+    IsInCommencing = true
 }
 
-public Do_RegisterHam_Bot(client) {
-    if (brokenConfig != 0) {
-        return
+public Event_NewRound() {
+    if (IsConfigBroken) {
+        return PLUGIN_CONTINUE
     }
 
-    if (!is_valid_ent(client)) {
-        return
-    }
+    gameTime = get_gametime()
 
-    if (is_user_alive(client)) {
-        fw_PlayerSpawn_Post(client)
-    }
+    if (IsInCommencing) {
+        new players[MAX_PLAYER], playersCount
+        get_players(players, playersCount)
 
-    RegisterHamFromEntity(Ham_Item_PostFrame, client, "Item_PostFrame_Pre")
-    RegisterHamFromEntity(Ham_Item_Deploy, client, "Weapon_Deploy_Post", 1)
-    RegisterHamFromEntity(Ham_TakeDamage, client, "fw_TakeDamage")
-    RegisterHamFromEntity(Ham_Spawn, client, "fw_PlayerSpawn_Post", 1)
-    RegisterHamFromEntity(Ham_Touch, client, "OnPlayerTouchWeaponBox")
-}
-
-public nst_bot_weapons(taskid) {
-    if (brokenConfig != 0) {
-        return
-    }
-
-    new client = (taskid - TASK_GIVEWPNBOT)
-
-    new CURRENT_WEAPON = HAS_WEAPON[client]
-    new CHANGE_WEAPON = str_to_num(parseConfig(CURRENT_WEAPON, "wpn_id"))
-    new wpn_id = get_user_weapon(client, _, _)
-
-    if (!is_valid_ent(client)) {
-        return
-    }
-
-    if (!is_user_alive(client)) {
-        return
-    }
-
-    if (get_cvar_num("nst_give_bot")) {
-        if (wpn_id == CHANGE_WEAPON && HAS_WEAPON[client]) {
-            ClientCommand_buyammo2(client)
-        } else {
-            new random_weapon_id = random_num(0, ArraySize(Pistol_Names) - 1)
-            if (!user_has_secondary(client) && random_weapon_id != 0) {
-                Buy_Weapon(client, random_weapon_id)
-            }
+        for (new i = 0; i < playersCount; i++) {
+            CURRENT_WEAPON[i] = 0
+            HAS_WEAPON[i] = 0
         }
+        IsInCommencing = false
     }
+
+    Remove_WeaponsBox()
+    return PLUGIN_HANDLED
 }
 
-public remove_modded() {
-    if (brokenConfig != 0) {
-        return PLUGIN_HANDLED
+public Event_Damage(client) {
+    if (IsConfigBroken || !is_valid_ent(client)) {
+        return PLUGIN_CONTINUE
     }
 
-    new entity = -1
-    for (new i = 0; i < ArraySize(Pistol_Numbers); i++) {
-        while ((entity = find_ent_by_class(entity, class_weapons[i]))) {
-            set_pev(entity, pev_nextthink, get_gametime());
-        }
+    new weapon, attacker = get_user_attacker(client, weapon)
+    if (!is_user_alive(attacker)) {
+        return PLUGIN_CONTINUE
+    }
+
+    new CURRENT_WEAPON = HAS_WEAPON[attacker]
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+
+    if (weapon != CHANGE_WEAPON || !CURRENT_WEAPON) {
+        return PLUGIN_CONTINUE
+    }
+
+    new Float: vector[3]
+    new Float: old_velocity[3]
+    get_user_velocity(client, old_velocity)
+    CreateVelocityVector(client, attacker, vector, cvar_knockback[CURRENT_WEAPON])
+    vector[0] += old_velocity[0]
+    vector[1] += old_velocity[1]
+    set_user_velocity(client, vector)
+
+    return PLUGIN_CONTINUE
+}
+
+public Event_Death() {
+    new client = read_data(2)
+
+    if (CURRENT_WEAPON[client]) {
+        CURRENT_WEAPON[client] = 0
     }
 
     return PLUGIN_CONTINUE
+}
+
+/*
+public client_putinserver(client) {
+    if (IsConfigBroken || !is_user_bot(client)) {
+        return PLUGIN_CONTINUE
+    }
+
+    set_task(0.1, "Do_RegisterHam_Bot", client)
+    return PLUGIN_HANDLED
+}
+
+public Do_RegisterHam_Bot(client) {
+    if (IsConfigBroken || !is_valid_ent(client)) {
+        return
+    }
+
+    RegisterHamFromEntity(Ham_Item_PostFrame, client, "Pistols_PostFrame_Pre")
+    RegisterHamFromEntity(Ham_Item_Deploy, client, "Weapon_Deploy_Post", 1)
+    RegisterHamFromEntity(Ham_Touch, client, "Ham_PlayerTouchWeaponBox")
+}*/
+
+public Task_BotWeapons(client) {
+    if (IsConfigBroken || !is_valid_ent(client)) {
+        return
+    }
+
+    new CURRENT_WEAPON = HAS_WEAPON[client]
+    new CHANGE_WEAPON = str_to_num(ParseConfig(CURRENT_WEAPON, "wpn_id"))
+    new wpnId = get_user_weapon(client)
+
+
+    if (HasUserSecondary(client)) {
+        return
+    }
+
+    new random_weapon_id = random_num(0, ArraySize(Pistol_Names) - 1)
+
+    if (wpnId == CHANGE_WEAPON && CURRENT_WEAPON) {
+        Cmd_BuyAmmo2(client)
+    } else if (random_weapon_id != 0) {
+        Buy_Weapon(client, random_weapon_id)
+    }
 }
