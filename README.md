@@ -62,7 +62,7 @@ cstrike
 - If you set "secondary_type" value to "3" when you click right click open's your custom sight model. You should add "sight_model" but if you dont set this value you can leave at blank "sight_model" value.
  #### Secondary Types:
   ```
-"4" = Automatically fires when you hold right mouse button
+"4" = Automatically fires when you hold right mouse button (only secondary weapons)
 "3" = Open's iron sight
 "2" = Open's awp scope
 "1" = Open's aug zoom
