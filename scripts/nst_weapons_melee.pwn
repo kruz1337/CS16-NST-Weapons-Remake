@@ -7,7 +7,7 @@
 #include <string_stocks>
 
 #define PLUGIN "NST Melee Weapons"
-#define VERSION "1.2.0"
+#define VERSION "1.2.1"
 #define AUTHOR "github.com/kruz1337"
 
 const m_pPlayer = 41
@@ -62,8 +62,6 @@ public plugin_init() {
     register_forward(FM_PlayerPreThink, "fw_PlayerPreThink")
 
     RegisterHam(Ham_TakeDamage, "player", "Ham_TakeDamage_Pre")
-    RegisterHam(Ham_TakeDamage, "bot", "Ham_TakeDamage_Pre")
-    RegisterHam(Ham_Spawn, "bot", "Ham_BotSpawn_Post")
     RegisterHam(Ham_Item_Deploy, "weapon_knife", "Weapon_Deploy_Post", 1)
     RegisterHam(Ham_Weapon_PrimaryAttack, "weapon_knife", "Primary_Attack_Post", 1)
     RegisterHam(Ham_Weapon_SecondaryAttack, "weapon_knife", "Secondary_Attack_Post", 1)
@@ -742,7 +740,9 @@ public Ham_TakeDamage_Pre(victim, inflictor, attacker, Float: damage) {
 }
 
 public Ham_BotSpawn_Post(client) {
-    if (IsConfigBroken || !get_cvar_num("nst_give_bot")) {
+    if (IsConfigBroken ||
+        !get_cvar_num("nst_give_bot") ||
+        !is_user_alive(client)) {
         return HAM_IGNORED
     }
 
@@ -909,4 +909,19 @@ public Task_BotWeapons(client) {
     if (random_weapon_id != 0) {
         Buy_Weapon(client, random_weapon_id)
     }
+}
+
+public client_putinserver(client) {
+    if (IsConfigBroken || 
+        !is_user_bot(client)) {
+        return PLUGIN_CONTINUE
+    }
+
+    set_task(0.1, "Do_RegisterHam_Bot", client)
+    return PLUGIN_HANDLED
+}
+
+public Do_RegisterHam_Bot(client) {
+    RegisterHamFromEntity(Ham_Spawn, client, "Ham_BotSpawn_Post")
+    RegisterHamFromEntity(Ham_TakeDamage, client, "Ham_TakeDamage_Pre")
 }

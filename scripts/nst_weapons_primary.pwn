@@ -7,7 +7,7 @@
 #include <string_stocks>
 
 #define PLUGIN "NST Primary Weapons"
-#define VERSION "1.2.0"
+#define VERSION "1.2.1"
 #define AUTHOR "github.com/kruz1337"
 
 const m_pPlayer = 41
@@ -98,8 +98,6 @@ public plugin_init() {
     register_forward(FM_CmdStart, "fw_CmdStart")
 
     RegisterHam(Ham_TakeDamage, "player", "Ham_TakeDamage_Pre")
-    RegisterHam(Ham_TakeDamage, "bot", "Ham_TakeDamage_Pre")
-    RegisterHam(Ham_Spawn, "bot", "Ham_BotSpawn_Post")
     RegisterHam(Ham_Touch, "weaponbox", "Ham_PlayerTouchWeaponBox")
     RegisterHam(Ham_TraceAttack, "worldspawn", "Ham_TraceAttack_Post", 1)
     RegisterHam(Ham_TraceAttack, "func_breakable", "Ham_TraceAttack_Post", 1)
@@ -1751,26 +1749,6 @@ public Event_Death() {
     return PLUGIN_HANDLED
 }
 
-/*
-public client_putinserver(client) {
-    if (IsConfigBroken || !is_user_bot(client)) {
-        return PLUGIN_CONTINUE
-    }
-
-    set_task(0.1, "Do_RegisterHam_Bot", client)
-    return PLUGIN_HANDLED
-}
-
-public Do_RegisterHam_Bot(client) {
-    if (IsConfigBroken || !is_user_alive(client)) {
-        return
-    }
-
-    RegisterHamFromEntity(Ham_Item_PostFrame, client, "Rifles_PostFrame_Pre")
-    RegisterHamFromEntity(Ham_Item_Deploy, client, "Weapon_Deploy_Post", 1)
-    RegisterHamFromEntity(Ham_Touch, client, "Ham_PlayerTouchWeaponBox")
-}*/
-
 public Task_BotWeapons(client) {
     if (IsConfigBroken || !is_valid_ent(client)) {
         return
@@ -1791,4 +1769,19 @@ public Task_BotWeapons(client) {
     } else if (random_weapon_id != 0) {
         Buy_Weapon(client, random_weapon_id)
     }
+}
+
+public client_putinserver(client) {
+    if (IsConfigBroken || 
+        !is_user_bot(client)) {
+        return PLUGIN_CONTINUE
+    }
+
+    set_task(0.1, "Do_RegisterHam_Bot", client)
+    return PLUGIN_HANDLED
+}
+
+public Do_RegisterHam_Bot(client) {
+    RegisterHamFromEntity(Ham_Spawn, client, "Ham_BotSpawn_Post")
+    RegisterHamFromEntity(Ham_TakeDamage, client, "Ham_TakeDamage_Pre")
 }
