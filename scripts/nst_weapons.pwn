@@ -2,7 +2,7 @@
 #include <hamsandwich>
 
 #define PLUGIN "NST Weapons"
-#define VERSION "1.2.0"
+#define VERSION "1.2.1"
 #define AUTHOR "github.com/kruz1337"
 
 const MAX_PLAYER = 32
